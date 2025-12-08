@@ -29,12 +29,25 @@ type Repository struct {
 }
 
 // NewRepository creates a new Sheets repository.
-func NewRepository(spreadsheetID, credentialsPath, qrisSheet, ordersSheet, akunGoogleSheet, akunChatGPTSheet string) (*Repository, error) {
+// Accepts either credentialsPath (for local dev) or credentialsJSON (for cloud deployment like Heroku).
+// If credentialsJSON is provided, it takes precedence over credentialsPath.
+func NewRepository(spreadsheetID, credentialsPath, credentialsJSON, qrisSheet, ordersSheet, akunGoogleSheet, akunChatGPTSheet string) (*Repository, error) {
 	ctx := context.Background()
 
-	srv, err := sheets.NewService(ctx, option.WithCredentialsFile(credentialsPath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sheets service: %w", err)
+	var srv *sheets.Service
+	var err error
+
+	// Prefer JSON credentials (for cloud deployment) over file path
+	if credentialsJSON != "" {
+		srv, err = sheets.NewService(ctx, option.WithCredentialsJSON([]byte(credentialsJSON)))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create sheets service from JSON: %w", err)
+		}
+	} else {
+		srv, err = sheets.NewService(ctx, option.WithCredentialsFile(credentialsPath))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create sheets service from file: %w", err)
+		}
 	}
 
 	return &Repository{

@@ -22,6 +22,7 @@ func Load() (*Config, error) {
 		SheetsEnabled:         getEnvBool("SHEETS_ENABLED", false),
 		GoogleSpreadsheetID:   getEnv("GOOGLE_SPREADSHEET_ID", ""),
 		GoogleCredentialsPath: getEnv("GOOGLE_CREDENTIALS_PATH", "./credentials.json"),
+		GoogleCredentialsJSON: getEnv("GOOGLE_CREDENTIALS_JSON", ""),
 		SheetQRISTransactions: getEnv("SHEET_QRIS_TRANSACTIONS", "TransaksiQRIS"),
 		SheetOrders:           getEnv("SHEET_ORDERS", "Pemesanan"),
 		SheetAkunGoogle:       getEnv("SHEET_AKUN_GOOGLE", "Akun Google"),

@@ -37,7 +37,8 @@ type Config struct {
 	// Google Sheets configuration
 	SheetsEnabled         bool   // Toggle to enable/disable Google Sheets integration
 	GoogleSpreadsheetID   string // Google Spreadsheet ID
-	GoogleCredentialsPath string // Path to Google credentials JSON file
+	GoogleCredentialsPath string // Path to Google credentials JSON file (for local dev)
+	GoogleCredentialsJSON string // Google credentials JSON content (for Heroku/cloud deployment)
 
 	// Sheet names for different data types
 	SheetQRISTransactions string // Name of the QRIS transactions sheet (logging) - TODO: Implement transaction logging
@@ -101,8 +102,9 @@ func (c *Config) validate() error {
 		if c.GoogleSpreadsheetID == "" {
 			return fmt.Errorf("GOOGLE_SPREADSHEET_ID is required when SHEETS_ENABLED=true")
 		}
-		if c.GoogleCredentialsPath == "" {
-			return fmt.Errorf("GOOGLE_CREDENTIALS_PATH is required when SHEETS_ENABLED=true")
+		// Either credentials path OR JSON content must be provided
+		if c.GoogleCredentialsPath == "" && c.GoogleCredentialsJSON == "" {
+			return fmt.Errorf("either GOOGLE_CREDENTIALS_PATH or GOOGLE_CREDENTIALS_JSON is required when SHEETS_ENABLED=true")
 		}
 	}
 

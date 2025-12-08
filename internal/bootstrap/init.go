@@ -45,6 +45,7 @@ func (app *App) initRepositories(ctx context.Context) error {
 		repo, err := reposheets.NewRepository(
 			app.Config.GoogleSpreadsheetID,
 			app.Config.GoogleCredentialsPath,
+			app.Config.GoogleCredentialsJSON,
 			"",                          // qrisSheet (legacy, not used)
 			app.Config.SheetOrders,      // ordersSheet
 			app.Config.SheetAkunGoogle,  // akunGoogleSheet
