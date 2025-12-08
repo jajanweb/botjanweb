@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -23,6 +24,11 @@ type QRPairingController struct {
 	currentQR    string
 	lastUpdate   time.Time
 	pairingToken string // Simple auth token
+
+	// Simple rate limiting for security (personal project, not production-grade)
+	rateLimitMu     sync.Mutex
+	failedAttempts  map[string]int       // IP -> failed count
+	lastAttemptTime map[string]time.Time // IP -> last attempt time
 }
 
 // NewQRPairingController creates a new QR pairing controller.
@@ -33,20 +39,97 @@ func NewQRPairingController(waClient *whatsapp.Client, pairingToken string) (*QR
 	}
 
 	return &QRPairingController{
-		waClient:     waClient,
-		view:         pairingView,
-		pairingToken: pairingToken,
+		waClient:        waClient,
+		view:            pairingView,
+		pairingToken:    pairingToken,
+		failedAttempts:  make(map[string]int),
+		lastAttemptTime: make(map[string]time.Time),
 	}, nil
+}
+
+// checkRateLimit checks if an IP is rate limited (simple protection for personal project).
+// Returns true if request should be blocked.
+func (c *QRPairingController) checkRateLimit(ip string) bool {
+	c.rateLimitMu.Lock()
+	defer c.rateLimitMu.Unlock()
+
+	const (
+		maxFailedAttempts = 5                // Block after 5 failed attempts
+		blockDuration     = 15 * time.Minute // Block for 15 minutes
+		resetAfter        = 5 * time.Minute  // Reset counter after 5 minutes of no attempts
+	)
+
+	now := time.Now()
+
+	// Check if IP is currently blocked
+	if lastAttempt, exists := c.lastAttemptTime[ip]; exists {
+		failedCount := c.failedAttempts[ip]
+
+		// If blocked and block period not expired yet
+		if failedCount >= maxFailedAttempts && now.Sub(lastAttempt) < blockDuration {
+			return true // Still blocked
+		}
+
+		// Reset counter if last attempt was long ago
+		if now.Sub(lastAttempt) > resetAfter {
+			delete(c.failedAttempts, ip)
+			delete(c.lastAttemptTime, ip)
+		}
+	}
+
+	return false // Not blocked
+}
+
+// recordFailedAttempt records a failed authentication attempt.
+func (c *QRPairingController) recordFailedAttempt(ip string) {
+	c.rateLimitMu.Lock()
+	defer c.rateLimitMu.Unlock()
+
+	c.failedAttempts[ip]++
+	c.lastAttemptTime[ip] = time.Now()
+
+	if c.failedAttempts[ip] >= 5 {
+		log.Printf("[SECURITY] IP %s has been blocked after %d failed attempts", ip, c.failedAttempts[ip])
+	}
+}
+
+// resetFailedAttempts resets failed attempts for an IP (called on successful auth).
+func (c *QRPairingController) resetFailedAttempts(ip string) {
+	c.rateLimitMu.Lock()
+	defer c.rateLimitMu.Unlock()
+
+	delete(c.failedAttempts, ip)
+	delete(c.lastAttemptTime, ip)
 }
 
 // HandlePairingPage serves the QR code pairing HTML page.
 func (c *QRPairingController) HandlePairingPage(w http.ResponseWriter, r *http.Request) {
-	// Simple authentication check
-	token := r.URL.Query().Get("token")
-	if token != c.pairingToken {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	ip := r.RemoteAddr
+
+	// Check rate limiting first (protect from brute force)
+	if c.checkRateLimit(ip) {
+		log.Printf("[SECURITY] Rate limit exceeded for %s - request blocked", ip)
+		http.Error(w, "Too many failed attempts - please try again later", http.StatusTooManyRequests)
 		return
 	}
+
+	// Security: Authenticate via header (not URL to prevent exposure in logs)
+	// Supports X-Pairing-Token (recommended) or Authorization header
+	token := r.Header.Get("X-Pairing-Token")
+	if token == "" {
+		token = r.Header.Get("Authorization")
+	}
+
+	if token != c.pairingToken {
+		log.Printf("[SECURITY] Unauthorized pairing attempt from %s", ip)
+		c.recordFailedAttempt(ip)
+		http.Error(w, "Unauthorized - Valid X-Pairing-Token header required", http.StatusUnauthorized)
+		return
+	}
+
+	// Successful auth - reset failed attempts
+	c.resetFailedAttempts(ip)
+	log.Printf("[SECURITY] Authorized pairing page access from %s", ip)
 
 	// Check if already paired
 	if c.waClient.IsLoggedIn() {
@@ -70,9 +153,24 @@ func (c *QRPairingController) HandlePairingPage(w http.ResponseWriter, r *http.R
 
 // HandleQRCodeAPI returns the current QR code as JSON (for AJAX polling).
 func (c *QRPairingController) HandleQRCodeAPI(w http.ResponseWriter, r *http.Request) {
-	// Simple authentication check
-	token := r.URL.Query().Get("token")
+	ip := r.RemoteAddr
+
+	// Check rate limiting (lighter than pairing page - this is polling)
+	if c.checkRateLimit(ip) {
+		http.Error(w, "Too many requests", http.StatusTooManyRequests)
+		return
+	}
+
+	// Security: Authenticate via header (not URL to prevent exposure in logs)
+	// Supports X-Pairing-Token (recommended) or Authorization header
+	token := r.Header.Get("X-Pairing-Token")
+	if token == "" {
+		token = r.Header.Get("Authorization")
+	}
+
 	if token != c.pairingToken {
+		// No detailed log spam for polling requests - just record and reject silently
+		c.recordFailedAttempt(ip)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

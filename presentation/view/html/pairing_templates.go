@@ -93,7 +93,12 @@ const PairingPageTemplate = `<!DOCTYPE html>
 
         async function fetchQRCode() {
             try {
-                const response = await fetch('/pairing/qr?token={{.Token}}');
+                // Security: Send token via header instead of URL
+                const response = await fetch('/pairing/qr', {
+                    headers: {
+                        'X-Pairing-Token': '{{.Token}}'
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.qr && data.qr !== lastQR) {

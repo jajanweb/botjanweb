@@ -415,6 +415,63 @@ To add a new command:
 4. Update `HandleMessage()` to route to the new command
 5. Wire the new use case in `internal/bootstrap/app.go`
 
+## 🔒 Security
+
+BotJanWeb implements security best practices for personal bot projects:
+
+### Implemented Security Features
+
+- ✅ **Header-based Authentication**: Tokens sent via headers (not URL) to prevent exposure in logs
+- ✅ **Rate Limiting**: Simple IP-based blocking (5 attempts, 15-minute block)
+- ✅ **Audit Logging**: All security events logged with IP addresses
+- ✅ **Secret Validation**: Minimum 8 characters for webhook secrets
+- ✅ **Configuration Validation**: All configs validated at startup
+- ✅ **Webhook Authentication**: X-Webhook-Secret header validation
+
+### Quick Security Setup
+
+```bash
+# Generate strong secrets
+WEBHOOK_SECRET=$(openssl rand -hex 32)
+PAIRING_TOKEN=$(openssl rand -hex 32)
+
+# Set in Heroku
+heroku config:set WEBHOOK_SECRET="$WEBHOOK_SECRET"
+heroku config:set PAIRING_TOKEN="$PAIRING_TOKEN"
+
+# Restrict allowed senders
+heroku config:set ALLOWED_SENDERS="+6282116086024"
+```
+
+### Accessing QR Pairing (Production)
+
+The QR pairing endpoint requires authentication via header:
+
+**Using ModHeader extension** (recommended for browsers):
+1. Install [ModHeader](https://chrome.google.com/webstore/detail/modheader/idgpnmonknjnojddfkpgkljpfnnfcklj)
+2. Add header: `X-Pairing-Token: <your-token>`
+3. Visit: `https://your-app.herokuapp.com/pairing`
+
+**Using curl**:
+```bash
+curl -H "X-Pairing-Token: your-token" \
+     https://your-app.herokuapp.com/pairing
+```
+
+### Monitor Security Events
+
+```bash
+# Watch security logs
+heroku logs --tail | grep SECURITY
+
+# Examples:
+# [SECURITY] Unauthorized pairing attempt from 1.2.3.4
+# [SECURITY] IP 1.2.3.4 blocked after 5 failed attempts
+# [SECURITY] Authorized access from 1.2.3.4
+```
+
+**📖 Full Security Documentation**: See [SECURITY.md](./SECURITY.md) for complete security guide, best practices, and deployment checklist.
+
 ## Dependencies
 
 - [go.mau.fi/whatsmeow](https://github.com/tulir/whatsmeow) - WhatsApp Web API
@@ -426,3 +483,4 @@ To add a new command:
 ## License
 
 MIT
+
