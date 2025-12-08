@@ -470,7 +470,25 @@ heroku logs --tail | grep SECURITY
 # [SECURITY] Authorized access from 1.2.3.4
 ```
 
-**📖 Full Security Documentation**: See [SECURITY.md](./SECURITY.md) for complete security guide, best practices, and deployment checklist.
+**📖 Full Security Documentation**: See [docs/SECURITY.md](./docs/SECURITY.md) for complete security guide, best practices, and deployment checklist.
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` folder:
+
+### Getting Started
+- **[docs/DEV_GUIDE.md](./docs/DEV_GUIDE.md)** - Development setup & local testing
+- **[docs/QUICKSTART_HEROKU.md](./docs/QUICKSTART_HEROKU.md)** - Quick Heroku deployment (< 10 minutes)
+- **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** - Complete deployment guide (Heroku, VPS, Docker)
+
+### Security
+- **[docs/SECURITY.md](./docs/SECURITY.md)** - Security implementation & best practices
+- **[docs/SECURITY_TESTING.md](./docs/SECURITY_TESTING.md)** - Security testing procedures
+- **[docs/TOKEN_GENERATION.md](./docs/TOKEN_GENERATION.md)** - Secure token generation guide
+
+### Scripts
+- **[scripts/test_security.sh](./scripts/test_security.sh)** - Automated security testing suite
+- **[scripts/README.md](./scripts/README.md)** - Scripts documentation
 
 ## Dependencies
 

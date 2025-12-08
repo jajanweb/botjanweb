@@ -50,10 +50,19 @@ Thumbs.db
 # Air live reload
 .air.toml
 
-# Note MD files (except README and SECURITY)
+# Documentation files
+# Keep only README.md in root
+# All other .md files (including docs/ folder) are local only
 *.md
 !README.md
-!SECURITY.md
+
+# docs/ folder: All documentation files are local only
+docs/
+
+# scripts/ folder: All scripts tracked
+scripts/*
+!scripts/README.md
+!scripts/*.sh
 
 # Image Samples
 *.png
