@@ -1,0 +1,27 @@
+// Package repository defines domain repository interfaces (ports).
+package repository
+
+import (
+	"context"
+
+	"github.com/exernia/botjanweb/internal/domain/entity"
+)
+
+// OrderRepository defines the contract for order persistence.
+type OrderRepository interface {
+	// SaveOrder persists a QRIS order to the storage.
+	SaveOrder(ctx context.Context, order *entity.QRISOrder) error
+
+	// GetOrder retrieves an order by its ID.
+	GetOrder(ctx context.Context, orderID string) (*entity.QRISOrder, error)
+
+	// ListOrders retrieves orders with optional filtering.
+	ListOrders(ctx context.Context, filter OrderFilter) ([]*entity.QRISOrder, error)
+}
+
+// OrderFilter defines criteria for listing orders.
+type OrderFilter struct {
+	Phone   string
+	Product string
+	Limit   int
+}

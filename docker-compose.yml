@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  botjanweb:
+    build: .
+    container_name: botjanweb
+    restart: unless-stopped
+    
+    # Environment variables
+    env_file:
+      - .env
+    
+    environment:
+      # Override for production
+      - WHATSAPP_DB_PATH=/app/data/whatsmeow.db
+      - GOOGLE_CREDENTIALS_PATH=/app/data/credentials.json
+    
+    # Volumes
+    volumes:
+      # Persistent data
+      - ./data:/app/data
+      # Logs
+      - ./logs:/app/logs
+      # Google credentials (mount read-only)
+      - ./credentials.json:/app/data/credentials.json:ro
+    
+    # Ports
+    ports:
+      - "${WEBHOOK_PORT:-8080}:8080"
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    
+    # Network
+    networks:
+      - botjanweb-network
+
+networks:
+  botjanweb-network:
+    driver: bridge

@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+
+# Build artifacts
+tmp/
+*.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+*_test.go
+
+# Credentials (mount separately)
+credentials.json
+
+# Data directories
+data/
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db

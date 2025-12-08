@@ -1,0 +1,62 @@
+# Binaries (exclude from root only, not cmd/ folder)
+/botjanweb
+webhooktest
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of coverage
+*.out
+
+# Dependency directories
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment and credentials
+.env
+*.env.local
+credentials.json
+service_account.json
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Temp files
+tmp/
+*.tmp
+*.log
+
+# Preview/debug outputs
+qris_preview.png
+webhook_log_*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Air live reload
+.air.toml
+
+# Note MD files (except README)
+*.md
+!README.md
+
+# Image Samples
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
