@@ -77,10 +77,26 @@ func (c *Client) handleIncomingMessage(evt *events.Message) {
 		IsPrivateChat: info.Chat.Server != "g.us",
 	}
 
-	// For private chat, recipient phone is the chat user
-	// Normalize to Indonesian phone format (628xxx)
+	// For private chat, extract recipient phone properly
 	if entityMsg.IsPrivateChat {
-		entityMsg.RecipientPhone = formatter.NormalizePhone(info.Chat.User)
+		// For self-messages (IsFromMe=true), recipient is the chat partner
+		// For incoming messages, sender is the other person
+		var recipientJID string
+
+		if info.IsFromMe {
+			// I sent message: recipient is the chat JID
+			recipientJID = info.Chat.User
+		} else {
+			// They sent message: sender is the other person (but we don't use this for self-QRIS)
+			recipientJID = info.Sender.User
+		}
+
+		// Only normalize if it looks like a phone number (not a group ID)
+		// Phone numbers: 10-15 digits, groups: usually longer
+		// s.whatsapp.net = user, g.us = group, lid = hidden
+		if info.Chat.Server == "s.whatsapp.net" || info.Chat.Server == "lid" {
+			entityMsg.RecipientPhone = formatter.NormalizePhone(recipientJID)
+		}
 	}
 
 	// Preserve timestamp if zero
