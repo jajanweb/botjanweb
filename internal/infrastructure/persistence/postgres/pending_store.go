@@ -19,6 +19,7 @@ type PendingStore struct {
 	db       *sql.DB
 	logger   *log.Logger
 	stopChan chan struct{}
+	stopped  bool // Track if cleanup has been stopped
 }
 
 // NewPendingStore creates a new PostgreSQL pending payment store.
@@ -214,7 +215,11 @@ func (s *PendingStore) StartCleanup() {
 
 // StopCleanup stops the cleanup routine.
 func (s *PendingStore) StopCleanup() {
-	close(s.stopChan)
+	if !s.stopped {
+		s.stopped = true
+		close(s.stopChan)
+		s.logger.Println("🛑 Cleanup scheduler stopped")
+	}
 }
 
 // cleanup removes pending payments older than maxAge.
