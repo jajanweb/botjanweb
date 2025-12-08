@@ -38,13 +38,13 @@ const AddAkunGoogleFormHelp = `📋 *PANDUAN TAMBAH AKUN GOOGLE*
 ━━━━━━━━━━━━━━━━━━━━
 📝 *Keterangan:*
 • *Email* - Alamat Gmail (wajib)
-• *Family* - Nama family plan (wajib)
+• *Sandi* - Password akun (wajib)
 
 📌 *Contoh:*
 #addakun google
 ───────────────────
 Email: john@example.com
-Family: Rumah Premium
+Sandi: password123
 ───────────────────`
 
 // AddAkunChatGPTFormTemplate is the template for adding ChatGPT accounts.
@@ -62,6 +62,7 @@ const AddAkunChatGPTFormHelp = `📋 *PANDUAN TAMBAH AKUN CHATGPT*
 ━━━━━━━━━━━━━━━━━━━━
 📝 *Keterangan:*
 • *Email* - Alamat email (wajib)
+• *Sandi* - Password akun (wajib)
 • *Workspace* - Nama workspace (wajib)
 • *Paket* - Paket langganan (wajib)
 
@@ -69,6 +70,7 @@ const AddAkunChatGPTFormHelp = `📋 *PANDUAN TAMBAH AKUN CHATGPT*
 #addakun chatgpt
 ───────────────────
 Email: john@example.com
+Sandi: password123
 Workspace: TeamAlpha
 Paket: Pro
 ───────────────────`
@@ -92,9 +94,19 @@ Perintah ini menampilkan daftar akun yang terdaftar.
 
 // BuildAddAkunSuccess builds success message for adding account.
 func BuildAddAkunSuccess(cmd *entity.AddAkunCommand) string {
-	familyOrWorkspace := cmd.Workspace
-	if familyOrWorkspace == "" {
-		familyOrWorkspace = "-"
+	// For Google: show Family, for ChatGPT: show Workspace
+	var detailField string
+	var detailValue string
+
+	if cmd.Tipe == entity.AccountTypeGoogle {
+		detailField = "Family"
+		detailValue = "-" // Google accounts don't track family in AddAkun
+	} else {
+		detailField = "Workspace"
+		detailValue = cmd.Workspace
+		if detailValue == "" {
+			detailValue = "-"
+		}
 	}
 
 	return fmt.Sprintf(`✅ *AKUN BERHASIL DITAMBAHKAN*
@@ -103,9 +115,9 @@ func BuildAddAkunSuccess(cmd *entity.AddAkunCommand) string {
 📋 *Detail:*
 • Tipe: %s
 • Email: %s
-• Workspace: %s
+• %s: %s
 
-📊 Data telah tersimpan di spreadsheet`, cmd.Tipe, cmd.Email, familyOrWorkspace)
+📊 Data telah tersimpan di spreadsheet`, cmd.Tipe, cmd.Email, detailField, detailValue)
 } // BuildListAkunResult builds the account list message.
 func BuildListAkunResult(result *entity.AccountListResult, filter entity.AccountType) string {
 	var msg string
