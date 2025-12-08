@@ -43,7 +43,9 @@ func BuildSelfQrisPaymentNotification(pending *entity.PendingPayment, amount int
 
 	b.WriteString("💰 *PEMBAYARAN DITERIMA*\n\n")
 	b.WriteString("━━━━━━━━━━━━━━━━━━━━\n")
-	b.WriteString(fmt.Sprintf("*%s* telah membayar %s\n", pending.Nama, formatter.FormatRupiah(amount)))
+	b.WriteString(fmt.Sprintf("Nama: %s\n", pending.Nama))
+	b.WriteString(fmt.Sprintf("Produk: %s\n", pending.Produk))
+	b.WriteString(fmt.Sprintf("Nominal: %s\n", formatter.FormatRupiah(amount)))
 	b.WriteString(fmt.Sprintf("📧 Email: %s\n", pending.Email))
 	if pending.Family != "" {
 		b.WriteString(fmt.Sprintf("👨‍👩‍👧‍👦 Family: %s\n", pending.Family))

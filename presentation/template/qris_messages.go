@@ -16,14 +16,14 @@ import (
 
 // QrisGeneralHelp is sent when #qris is called without product parameter.
 const QrisGeneralHelp = `📋 *PANDUAN QRIS*
-━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━
 Gunakan command sesuai produk:
 
 • *#qris google* → Order Gemini (GDrive 2TB + AI Pro)
 • *#qris chatgpt* → Order ChatGPT Pro
 
-Contoh:
+📌 *Contoh:*
 #qris google
 #qris chatgpt`
 
@@ -40,8 +40,8 @@ Akun:
 
 // QrisGeminiFormHelp is the help for Gemini orders.
 const QrisGeminiFormHelp = `📋 *PANDUAN ORDER GEMINI*
-━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━
 📦 *Produk:* Gemini (GDrive 2TB + Gemini AI Pro)
 
 📝 *Keterangan:*
@@ -76,8 +76,8 @@ Kanal:
 
 // QrisChatGPTFormHelp is the help for ChatGPT orders.
 const QrisChatGPTFormHelp = `📋 *PANDUAN ORDER CHATGPT*
-━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━
 📦 *Produk:* ChatGPT Pro
 
 📝 *Keterangan:*

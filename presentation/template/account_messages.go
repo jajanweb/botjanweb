@@ -14,14 +14,14 @@ import (
 
 // AddAkunGeneralHelp is sent when #addakun is called without type parameter.
 const AddAkunGeneralHelp = `📋 *PANDUAN TAMBAH AKUN*
-━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━
 Gunakan command sesuai tipe:
 
 • *#addakun google* → Tambah Akun Google
 • *#addakun chatgpt* → Tambah Akun ChatGPT
 
-Contoh:
+📌 *Contoh:*
 #addakun google
 #addakun chatgpt`
 
@@ -34,8 +34,8 @@ Sandi:
 
 // AddAkunGoogleFormHelp is the help for adding Google accounts.
 const AddAkunGoogleFormHelp = `📋 *PANDUAN TAMBAH AKUN GOOGLE*
-━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━
 📝 *Keterangan:*
 • *Email* - Alamat Gmail (wajib)
 • *Family* - Nama family plan (wajib)
@@ -50,16 +50,16 @@ Family: Rumah Premium
 // AddAkunChatGPTFormTemplate is the template for adding ChatGPT accounts.
 const AddAkunChatGPTFormTemplate = `#addakun chatgpt
 ───────────────────
-Email:
-Sandi:
+Email: 
+Sandi: 
 Workspace: 
 Paket: 
 ───────────────────`
 
 // AddAkunChatGPTFormHelp is the help for adding ChatGPT accounts.
 const AddAkunChatGPTFormHelp = `📋 *PANDUAN TAMBAH AKUN CHATGPT*
-━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━
 📝 *Keterangan:*
 • *Email* - Alamat email (wajib)
 • *Workspace* - Nama workspace (wajib)
@@ -79,11 +79,11 @@ Paket: Pro
 
 // ListAkunHelp is the help message for #listakun command.
 const ListAkunHelp = `📋 *PANDUAN LIST AKUN*
-━━━━━━━━━━━━━━━━━━━━
 
+━━━━━━━━━━━━━━━━━━━━
 Perintah ini menampilkan daftar akun yang terdaftar.
 
-Contoh:
+📌 *Contoh:*
 #listakun`
 
 // ============================================================================
@@ -100,6 +100,7 @@ func BuildAddAkunSuccess(cmd *entity.AddAkunCommand) string {
 	return fmt.Sprintf(`✅ *AKUN BERHASIL DITAMBAHKAN*
 
 ━━━━━━━━━━━━━━━━━━━━
+📋 *Detail:*
 • Tipe: %s
 • Email: %s
 • Workspace: %s
@@ -109,9 +110,8 @@ func BuildAddAkunSuccess(cmd *entity.AddAkunCommand) string {
 func BuildListAkunResult(result *entity.AccountListResult, filter entity.AccountType) string {
 	var msg string
 
+	msg += "📋 *DAFTAR AKUN*\n\n"
 	msg += "━━━━━━━━━━━━━━━━━━━━\n"
-	msg += "📋 *DAFTAR AKUN*\n"
-	msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
 	// Show Google accounts
 	if filter == "" || filter == entity.AccountTypeGoogle {
