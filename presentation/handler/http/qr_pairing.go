@@ -213,9 +213,13 @@ func (c *QRPairingController) StartPairing(ctx context.Context) error {
 		return fmt.Errorf("failed to get QR channel: %w", err)
 	}
 
+	log.Println("[PAIRING] QR channel obtained, starting event handler goroutine")
+
 	// Start goroutine to handle QR events
 	go func() {
+		log.Println("[PAIRING] QR event handler goroutine started")
 		for evt := range qrChan {
+			log.Printf("[PAIRING] Received QR event: %s", evt.Event)
 			switch evt.Event {
 			case "code":
 				// Generate QR code as data URL
@@ -226,26 +230,33 @@ func (c *QRPairingController) StartPairing(ctx context.Context) error {
 				c.lastUpdate = time.Now()
 				c.mu.Unlock()
 
+				log.Println("[PAIRING] ✅ QR code generated and stored")
+
 			case "success":
+				log.Println("[PAIRING] ✅ Pairing successful")
 				c.mu.Lock()
 				c.currentQR = ""
 				c.mu.Unlock()
 				return
 
 			case "timeout":
+				log.Println("[PAIRING] ⏱️ QR code expired/timeout")
 				c.mu.Lock()
 				c.currentQR = ""
 				c.mu.Unlock()
 				return
 			}
 		}
+		log.Println("[PAIRING] QR channel closed")
 	}()
 
+	log.Println("[PAIRING] Connecting WhatsApp websocket...")
 	// Now connect the websocket (event handler should already be set)
 	if err := c.waClient.ConnectWithEventHandler(); err != nil {
 		return fmt.Errorf("failed to connect for pairing: %w", err)
 	}
 
+	log.Println("[PAIRING] ✅ WhatsApp websocket connected")
 	return nil
 }
 
