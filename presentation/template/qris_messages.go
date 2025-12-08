@@ -168,7 +168,7 @@ func BuildSelfQrisNotification(cmd *entity.QrisCommand, recipientPhone string) s
 
 	b.WriteString("🔔 *PESANAN BARU*\n\n")
 	b.WriteString("━━━━━━━━━━━━━━━━━━━━\n")
-	b.WriteString(fmt.Sprintf("👤 %s sedang order:\n", cmd.Nama))
+	b.WriteString(fmt.Sprintf("👤 Nama: %s\n", cmd.Nama))
 	b.WriteString(fmt.Sprintf("📧 Email: %s\n", cmd.Email))
 	if cmd.Family != "" {
 		b.WriteString(fmt.Sprintf("👨‍👩‍👧‍👦 Family: %s\n", cmd.Family))

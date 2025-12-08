@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/exernia/botjanweb/internal/infrastructure/messaging/whatsapp"
+	"github.com/exernia/botjanweb/pkg/logger"
 	"github.com/exernia/botjanweb/presentation/view"
 	"github.com/skip2/go-qrcode"
 )
@@ -20,6 +21,7 @@ import (
 type QRPairingController struct {
 	waClient     *whatsapp.Client
 	view         *view.PairingView
+	logger       *log.Logger
 	mu           sync.RWMutex
 	currentQR    string
 	lastUpdate   time.Time
@@ -41,6 +43,7 @@ func NewQRPairingController(waClient *whatsapp.Client, pairingToken string) (*QR
 	return &QRPairingController{
 		waClient:        waClient,
 		view:            pairingView,
+		logger:          logger.New("[PAIRING] "),
 		pairingToken:    pairingToken,
 		failedAttempts:  make(map[string]int),
 		lastAttemptTime: make(map[string]time.Time),
@@ -89,7 +92,7 @@ func (c *QRPairingController) recordFailedAttempt(ip string) {
 	c.lastAttemptTime[ip] = time.Now()
 
 	if c.failedAttempts[ip] >= 5 {
-		log.Printf("[SECURITY] IP %s has been blocked after %d failed attempts", ip, c.failedAttempts[ip])
+		c.logger.Printf("IP %s has been blocked after %d failed attempts", ip, c.failedAttempts[ip])
 	}
 }
 
@@ -108,7 +111,7 @@ func (c *QRPairingController) HandlePairingPage(w http.ResponseWriter, r *http.R
 
 	// Check rate limiting first (protect from brute force)
 	if c.checkRateLimit(ip) {
-		log.Printf("[SECURITY] Rate limit exceeded for %s - request blocked", ip)
+		c.logger.Printf("Rate limit exceeded for %s - request blocked", ip)
 		http.Error(w, "Too many failed attempts - please try again later", http.StatusTooManyRequests)
 		return
 	}
@@ -121,7 +124,7 @@ func (c *QRPairingController) HandlePairingPage(w http.ResponseWriter, r *http.R
 	}
 
 	if token != c.pairingToken {
-		log.Printf("[SECURITY] Unauthorized pairing attempt from %s", ip)
+		c.logger.Printf("Unauthorized pairing attempt from %s", ip)
 		c.recordFailedAttempt(ip)
 		http.Error(w, "Unauthorized - Valid X-Pairing-Token header required", http.StatusUnauthorized)
 		return
@@ -129,7 +132,7 @@ func (c *QRPairingController) HandlePairingPage(w http.ResponseWriter, r *http.R
 
 	// Successful auth - reset failed attempts
 	c.resetFailedAttempts(ip)
-	log.Printf("[SECURITY] Authorized pairing page access from %s", ip)
+	c.logger.Printf("Authorized pairing page access from %s", ip)
 
 	// Check if already paired
 	if c.waClient.IsLoggedIn() {
@@ -213,27 +216,27 @@ func (c *QRPairingController) StartPairing(ctx context.Context) error {
 		return fmt.Errorf("failed to get QR channel: %w", err)
 	}
 
-	log.Println("[PAIRING] QR channel obtained, starting event handler goroutine")
+	c.logger.Println("QR channel obtained, starting event handler goroutine")
 
 	// Start goroutine to handle QR events
 	go func() {
-		log.Println("[PAIRING] QR event handler goroutine started")
+		c.logger.Println("QR event handler goroutine started")
 		for evt := range qrChan {
-			log.Printf("[PAIRING] Received QR event: %s", evt.Event)
+			c.logger.Printf("Received QR event: %s", evt.Event)
 			switch evt.Event {
 			case "code":
-				// Generate QR code as data URL
-				qrDataURL := generateQRDataURL(evt.Code)
+				// Generate QR code as base64
+				qrBase64 := generateQRDataURL(evt.Code)
 
 				c.mu.Lock()
-				c.currentQR = qrDataURL
+				c.currentQR = qrBase64
 				c.lastUpdate = time.Now()
 				c.mu.Unlock()
 
-				log.Println("[PAIRING] ✅ QR code generated and stored")
+				c.logger.Println("✅ QR code generated and stored")
 
 			case "success":
-				log.Println("[PAIRING] ✅ Pairing successful")
+				c.logger.Println("✅ Pairing successful")
 				c.mu.Lock()
 				c.currentQR = ""
 				c.mu.Unlock()
@@ -247,16 +250,16 @@ func (c *QRPairingController) StartPairing(ctx context.Context) error {
 				return
 			}
 		}
-		log.Println("[PAIRING] QR channel closed")
+		c.logger.Println("QR channel closed")
 	}()
 
-	log.Println("[PAIRING] Connecting WhatsApp websocket...")
+	c.logger.Println("Connecting WhatsApp websocket...")
 	// Now connect the websocket (event handler should already be set)
 	if err := c.waClient.ConnectWithEventHandler(); err != nil {
-		return fmt.Errorf("failed to connect for pairing: %w", err)
+		return fmt.Errorf("failed to connect WhatsApp: %w", err)
 	}
 
-	log.Println("[PAIRING] ✅ WhatsApp websocket connected")
+	c.logger.Println("✅ WhatsApp websocket connected")
 	return nil
 }
 

@@ -29,7 +29,7 @@ Contoh:
 const AddAkunGoogleFormTemplate = `#addakun google
 ───────────────────
 Email: 
-Family: 
+Sandi: 
 ───────────────────`
 
 // AddAkunGoogleFormHelp is the help for adding Google accounts.
@@ -50,7 +50,8 @@ Family: Rumah Premium
 // AddAkunChatGPTFormTemplate is the template for adding ChatGPT accounts.
 const AddAkunChatGPTFormTemplate = `#addakun chatgpt
 ───────────────────
-Email: 
+Email:
+Sandi:
 Workspace: 
 Paket: 
 ───────────────────`

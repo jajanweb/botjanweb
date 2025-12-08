@@ -31,7 +31,6 @@ type Config struct {
 	QRISStaticPayload string
 
 	// Merchant/toko name to display on QRIS image and receipts
-	// TODO: Currently validated but not used in renderer - will be used in QRIS image v2
 	MerchantName string
 
 	// Google Sheets configuration
@@ -41,7 +40,7 @@ type Config struct {
 	GoogleCredentialsJSON string // Google credentials JSON content (for Heroku/cloud deployment)
 
 	// Sheet names for different data types
-	SheetQRISTransactions string // Name of the QRIS transactions sheet (logging) - TODO: Implement transaction logging
+	SheetQRISTransactions string // Name of the QRIS transactions sheet (logging)
 	SheetOrders           string // Name of the orders sheet (customer orders)
 	SheetAkunGoogle       string // Name of the Google accounts sheet (account management)
 	SheetAkunChatGPT      string // Name of the ChatGPT accounts sheet (account management)
