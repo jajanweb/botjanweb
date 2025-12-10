@@ -8,6 +8,7 @@ import (
 
 	"github.com/exernia/botjanweb/internal/domain/entity"
 	"github.com/exernia/botjanweb/pkg/helper/formatter"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -86,8 +87,16 @@ func (c *Client) handleIncomingMessage(evt *events.Message) {
 			case "s.whatsapp.net":
 				entityMsg.RecipientPhone = formatter.NormalizePhone(info.Chat.User)
 			case "lid":
-				// LID users have hidden phone numbers - show "Private"
-				entityMsg.RecipientPhone = "Private User"
+				// LID users have hidden phone numbers
+				// Try to resolve using the LID mapping store
+				pn, err := c.wm.Store.LIDs.GetPNForLID(context.Background(), info.Chat)
+				if err == nil && !pn.IsEmpty() {
+					entityMsg.RecipientPhone = formatter.NormalizePhone(pn.User)
+					c.logger.Printf("📞 Resolved LID %s → PN %s", info.Chat.User, pn.User)
+				} else {
+					// Fallback: Try calling GetUserInfo to get updated mapping
+					entityMsg.RecipientPhone = c.tryResolveLIDPhone(info.Chat)
+				}
 			}
 		}
 	}
@@ -103,4 +112,28 @@ func (c *Client) handleIncomingMessage(evt *events.Message) {
 		ctx := context.Background()
 		c.handler(ctx, entityMsg)
 	}()
+}
+
+// tryResolveLIDPhone attempts to resolve a phone number from a LID JID.
+// It first checks the local cache/store, then tries GetUserInfo as a fallback.
+// Returns "Private User" if resolution fails.
+func (c *Client) tryResolveLIDPhone(lid types.JID) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Try GetUserInfo which may trigger LID sync and populate mapping in the store
+	_, err := c.wm.GetUserInfo(ctx, []types.JID{lid})
+	if err != nil {
+		c.logger.Printf("⚠️ GetUserInfo failed for LID %s: %v", lid.User, err)
+		return "Private User"
+	}
+
+	// After GetUserInfo, check if we got a LID-PN mapping stored
+	pn, err := c.wm.Store.LIDs.GetPNForLID(ctx, lid)
+	if err == nil && !pn.IsEmpty() {
+		c.logger.Printf("📞 Resolved LID %s → PN %s (via GetUserInfo)", lid.User, pn.User)
+		return formatter.NormalizePhone(pn.User)
+	}
+
+	return "Private User"
 }
