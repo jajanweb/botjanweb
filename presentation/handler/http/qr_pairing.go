@@ -145,6 +145,23 @@ func (c *QRPairingController) HandlePairingPage(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// Start pairing process if not already started
+	c.mu.Lock()
+	pairingActive := c.currentQR != "" || !c.lastUpdate.IsZero()
+	c.mu.Unlock()
+
+	if !pairingActive {
+		c.logger.Println("Starting QR pairing on-demand...")
+		ctx := r.Context()
+		go func() {
+			if err := c.StartPairing(ctx); err != nil {
+				c.logger.Printf("Failed to start pairing: %v", err)
+			}
+		}()
+		// Give pairing a moment to start before rendering page
+		time.Sleep(100 * time.Millisecond)
+	}
+
 	// Show pairing page
 	err := c.view.RenderPage(w, view.PairingPageData{
 		Token: c.pairingToken,

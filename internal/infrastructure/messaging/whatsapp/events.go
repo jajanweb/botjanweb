@@ -82,9 +82,10 @@ func (c *Client) handleIncomingMessage(evt *events.Message) {
 		// For outgoing messages (self-QRIS), use chat partner's JID
 		if info.IsFromMe {
 			// Only extract phone if it's s.whatsapp.net (regular phone number)
-			if info.Chat.Server == "s.whatsapp.net" {
+			switch info.Chat.Server {
+			case "s.whatsapp.net":
 				entityMsg.RecipientPhone = formatter.NormalizePhone(info.Chat.User)
-			} else if info.Chat.Server == "lid" {
+			case "lid":
 				// LID users have hidden phone numbers - show "Private"
 				entityMsg.RecipientPhone = "Private User"
 			}

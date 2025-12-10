@@ -52,21 +52,23 @@ func (app *App) Run(ctx context.Context) error {
 		app.Logger.Printf("✅ Webhook server started on port %d", app.Config.WebhookPort)
 	}
 
-	// CRITICAL: Start QR pairing BEFORE WAClient.Run() to avoid race condition
-	if !app.WAClient.IsLoggedIn() && app.QRPairingController != nil {
-		app.Logger.Println("📱 Device not paired. Starting QR pairing...")
-		if err := app.QRPairingController.StartPairing(ctx); err != nil {
-			app.Logger.Printf("⚠️ Failed to start QR pairing: %v", err)
-			// Don't return error, still run the client
+	// Start QR pairing process (will be activated on-demand via web interface)
+	// No need to check IsLoggedIn here - let the HTTP handler decide dynamically
+	if app.QRPairingController != nil {
+		// Get hostname for Heroku or use localhost for dev
+		hostname := "localhost"
+		if app.Config.HerokuAppName != "" {
+			hostname = app.Config.HerokuAppName + ".herokuapp.com"
 		} else {
-			// Get hostname for Heroku or use localhost for dev
-			hostname := "localhost"
-			if app.Config.HerokuAppName != "" {
-				hostname = app.Config.HerokuAppName + ".herokuapp.com"
-			} else {
-				hostname = fmt.Sprintf("localhost:%d", app.Config.WebhookPort)
-			}
-			app.Logger.Printf("🌐 QR Pairing available at: http://%s/pairing?token=%s",
+			hostname = fmt.Sprintf("localhost:%d", app.Config.WebhookPort)
+		}
+
+		if !app.WAClient.IsLoggedIn() {
+			app.Logger.Println("📱 Device not paired yet")
+			app.Logger.Printf("🌐 QR Pairing available at: https://%s/pairing?token=%s",
+				hostname, app.Config.WebhookSecret)
+		} else {
+			app.Logger.Printf("✅ Device already paired. Pairing page: https://%s/pairing?token=%s",
 				hostname, app.Config.WebhookSecret)
 		}
 	}
