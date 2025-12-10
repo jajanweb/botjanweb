@@ -152,9 +152,9 @@ func (c *QRPairingController) HandlePairingPage(w http.ResponseWriter, r *http.R
 
 	if !pairingActive {
 		c.logger.Println("Starting QR pairing on-demand...")
-		ctx := r.Context()
+		// Use background context - pairing must survive beyond this HTTP request
 		go func() {
-			if err := c.StartPairing(ctx); err != nil {
+			if err := c.StartPairing(context.Background()); err != nil {
 				c.logger.Printf("Failed to start pairing: %v", err)
 			}
 		}()
