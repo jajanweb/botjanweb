@@ -107,6 +107,9 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	wib := time.FixedZone("WIB", 7*60*60)
 	tanggal := order.TanggalPesanan.In(wib).Format("2006-01-02")
 
+	// Calculate expiry date: 1 month from order date
+	tanggalBerakhir := order.TanggalPesanan.In(wib).AddDate(0, 1, 0).Format("2006-01-02")
+
 	// Determine column D value based on product type
 	var columnDValue string
 	if isRedeemProduct {
@@ -179,7 +182,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 				Fields: "userEnteredValue",
 			},
 		},
-		// Update E (Tanggal Pesanan) - skip F (Tanggal Berakhir)
+		// Update E (Tanggal Pesanan) and F (Tanggal Berakhir)
 		{
 			UpdateCells: &sheets.UpdateCellsRequest{
 				Start: &sheets.GridCoordinate{
@@ -190,7 +193,10 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 				Rows: []*sheets.RowData{
 					{
 						Values: []*sheets.CellData{
+							// E: Tanggal Pesanan
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
+							// F: Tanggal Berakhir (1 month from order date)
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
 						},
 					},
 				},
