@@ -69,12 +69,12 @@ func NewRepository(spreadsheetID, credentialsPath, credentialsJSON, qrisSheet, o
 //	A = No (auto, skip)
 //	B = Nama
 //	C = Email
-//	D = Family
+//	D = Family (ChatGPT/Gemini) OR Kode Redeem (Perplexity/YouTube)
 //	E = Tanggal Pesanan
 //	F = Tanggal Berakhir (skip)
-//	G = Amount
+//	G = Amount/Nominal
 //	H = Kanal
-//	I = Akun
+//	I = Akun/Nomor/Username
 func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	// Determine target sheet from Produk field
 	targetSheet := r.resolveSheetName(order.Produk)
@@ -85,13 +85,16 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 		return fmt.Errorf("failed to get sheet ID for '%s': %w", targetSheet, err)
 	}
 
-	// Find insertion position based on Family field
+	// Check if this is a redeem-based product (Perplexity/YouTube)
+	isRedeemProduct := order.Produk == "Perplexity" || order.Produk == "YouTube"
+
+	// Find insertion position based on Family field or redeem-based product
 	var lastRow int64
-	if order.Family == "" {
-		// No family: insert after last row where column D (Family) is filled
-		lastRow, err = r.findLastFamilyRow(targetSheet)
+	if isRedeemProduct || order.Family == "" {
+		// Redeem-based products or no family: insert after last filled row
+		lastRow, err = r.findLastFilledRow(targetSheet)
 		if err != nil {
-			return fmt.Errorf("failed to find last family row: %w", err)
+			return fmt.Errorf("failed to find last filled row: %w", err)
 		}
 	} else {
 		// Has family: find available slot with matching Family value
@@ -104,15 +107,23 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	wib := time.FixedZone("WIB", 7*60*60)
 	tanggal := order.TanggalPesanan.In(wib).Format("2006-01-02")
 
+	// Determine column D value based on product type
+	var columnDValue string
+	if isRedeemProduct {
+		columnDValue = order.KodeRedeem // Empty initially, filled by admin later
+	} else {
+		columnDValue = order.Family
+	}
+
 	// Instead of inserting a new row, update the existing empty row at lastRow.
 	// This prevents pushing down existing data and avoids breaking array formulas.
 	//
-	// For rows WITH pre-filled Family (slots 108-151):
+	// For rows WITH pre-filled Family (slots 108-151 in ChatGPT/Gemini):
 	//   - Only update: B (Nama), C (Email), E (Tanggal), G (Amount), H (Kanal), I (Akun)
 	//   - Skip D (Family) as it's already filled
 	//
-	// For rows WITHOUT Family (after 151):
-	//   - Update all columns including D (Family)
+	// For rows WITHOUT Family or redeem-based products:
+	//   - Update all columns including D (Family or Kode Redeem)
 	//
 	// Strategy: Update columns separately to avoid offset issues
 	requests := []*sheets.Request{
@@ -148,6 +159,24 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 					},
 				},
 				Fields: "userEnteredValue,chipRuns",
+			},
+		},
+		// Update D (Family or Kode Redeem) - only for redeem products or non-family orders
+		{
+			UpdateCells: &sheets.UpdateCellsRequest{
+				Start: &sheets.GridCoordinate{
+					SheetId:     sheetID,
+					RowIndex:    lastRow,
+					ColumnIndex: 3, // Column D (0-indexed)
+				},
+				Rows: []*sheets.RowData{
+					{
+						Values: []*sheets.CellData{
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &columnDValue}},
+						},
+					},
+				},
+				Fields: "userEnteredValue",
 			},
 		},
 		// Update E (Tanggal Pesanan) - skip F (Tanggal Berakhir)
@@ -219,6 +248,30 @@ func (r *Repository) getSheetID(sheetName string) (int64, error) {
 	}
 
 	return 0, fmt.Errorf("sheet '%s' not found", sheetName)
+}
+
+// findLastFilledRow finds the last row with data in column B (Nama).
+// Returns 0-indexed row number where new data should be inserted.
+// This is used for redeem-based products (Perplexity/YouTube) or orders without Family.
+func (r *Repository) findLastFilledRow(sheetName string) (int64, error) {
+	// Read column B (Nama) to find last non-empty cell
+	readRange := fmt.Sprintf("'%s'!B:B", sheetName)
+	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
+	if err != nil {
+		return 0, err
+	}
+
+	// Find last non-empty row in column B
+	// Row 1 is title, Row 2 is header, data starts from row 3 (index 2)
+	lastFilledRow := int64(1) // Default to row 2 if no data
+	for i, row := range resp.Values {
+		if len(row) > 0 && row[0] != nil && fmt.Sprintf("%v", row[0]) != "" {
+			lastFilledRow = int64(i)
+		}
+	}
+
+	// Return the row after last filled row (0-indexed)
+	return lastFilledRow + 1, nil
 }
 
 // findLastFamilyRow finds the last row with data in column D (Family).

@@ -38,11 +38,12 @@ type Order struct {
 	Produk         string    // Determines target sheet
 	Nama           string    // B: Nama
 	Email          string    // C: Email
-	Family         string    // D: Family
+	Family         string    // D: Family (for ChatGPT/Gemini) or empty
+	KodeRedeem     string    // D: Kode Redeem (for Perplexity/YouTube)
 	TanggalPesanan time.Time // E: Tanggal Pesanan
-	Amount         int       // G: Amount
+	Amount         int       // G: Amount/Nominal
 	Kanal          string    // H: Kanal
-	Akun           string    // I: Akun Threads
+	Akun           string    // I: Akun/Nomor/Username
 }
 
 // NewOrderFromPending creates an Order entity from a confirmed PendingPayment.
@@ -52,6 +53,7 @@ func NewOrderFromPending(pending *PendingPayment) *Order {
 		Nama:           pending.Nama,
 		Email:          pending.Email,
 		Family:         pending.Family,
+		KodeRedeem:     "", // Will be filled manually by admin for redeem-based products
 		TanggalPesanan: time.Now(),
 		Amount:         pending.Amount,
 		Kanal:          pending.Kanal,
