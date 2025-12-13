@@ -194,23 +194,51 @@ func (h *Handler) handleQrisSelf(ctx context.Context, msg *entity.Message, text 
 
 // validateFamilyOrWorkspace validates family or workspace field.
 // Returns validation result and error message if validation fails.
-func (h *Handler) validateFamilyOrWorkspace(ctx context.Context, fieldName, fieldValue string) (*entity.FamilyValidation, string, error) {
-	if fieldValue == "" || h.familyUC == nil {
+// For Family: validates against Akun Google (Gemini family emails)
+// For Workspace: validates against Akun ChatGPT (ChatGPT workspace names)
+func (h *Handler) validateFamilyOrWorkspace(ctx context.Context, fieldName, fieldValue string) (interface{}, string, error) {
+	if fieldValue == "" {
 		return nil, "", nil
 	}
 
-	validation, err := h.familyUC.ValidateFamily(ctx, fieldValue)
-	if err != nil || !validation.IsValid {
-		errorMsg := fmt.Sprintf("❌ Validasi %s gagal", fieldName)
-		if validation != nil && validation.ErrorMessage != "" {
-			errorMsg = "❌ " + validation.ErrorMessage
+	switch fieldName {
+	case "Family":
+		// Family validation for Gemini products
+		if h.familyUC == nil {
+			return nil, "", nil
 		}
-		h.logger.Printf("Validasi %s gagal: %v", fieldName, err)
-		return validation, errorMsg, err
-	}
+		validation, err := h.familyUC.ValidateFamily(ctx, fieldValue)
+		if err != nil || !validation.IsValid {
+			errorMsg := fmt.Sprintf("❌ Validasi %s gagal", fieldName)
+			if validation != nil && validation.ErrorMessage != "" {
+				errorMsg = "❌ " + validation.ErrorMessage
+			}
+			h.logger.Printf("Validasi %s gagal: %v", fieldName, err)
+			return validation, errorMsg, err
+		}
+		h.logger.Printf("Validasi %s berhasil: %s (%d/%d slots)", fieldName, fieldValue, validation.UsedSlots, validation.MaxSlots)
+		return validation, "", nil
 
-	h.logger.Printf("Validasi %s berhasil: %s (%d/%d slots)", fieldName, fieldValue, validation.UsedSlots, validation.MaxSlots)
-	return validation, "", nil
+	case "Workspace":
+		// Workspace validation for ChatGPT products
+		if h.workspaceUC == nil {
+			return nil, "", nil
+		}
+		validation, err := h.workspaceUC.ValidateWorkspace(ctx, fieldValue)
+		if err != nil || !validation.IsValid {
+			errorMsg := fmt.Sprintf("❌ Validasi %s gagal", fieldName)
+			if validation != nil && validation.ErrorMessage != "" {
+				errorMsg = "❌ " + validation.ErrorMessage
+			}
+			h.logger.Printf("Validasi %s gagal: %v", fieldName, err)
+			return validation, errorMsg, err
+		}
+		h.logger.Printf("Validasi %s berhasil: %s (%d/%d slots)", fieldName, fieldValue, validation.UsedSlots, validation.MaxSlots)
+		return validation, "", nil
+
+	default:
+		return nil, "", nil
+	}
 }
 
 // sendQrisHelp sends help/template based on product type.

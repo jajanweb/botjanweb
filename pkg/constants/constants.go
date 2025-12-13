@@ -27,7 +27,8 @@ const (
 
 // Family plan constants.
 const (
-	MaxFamilySlots = 5
+	MaxFamilySlots    = 5 // Gemini family (max 5 members)
+	MaxWorkspaceSlots = 4 // ChatGPT workspace (max 4 members)
 )
 
 // Time constants.

@@ -10,6 +10,7 @@ import (
 	familyuc "github.com/exernia/botjanweb/internal/application/service/family"
 	paymentuc "github.com/exernia/botjanweb/internal/application/service/payment"
 	qrisuc "github.com/exernia/botjanweb/internal/application/service/qris"
+	workspaceuc "github.com/exernia/botjanweb/internal/application/service/workspace"
 	"github.com/exernia/botjanweb/internal/bootstrap/adapters"
 	"github.com/exernia/botjanweb/internal/config"
 	"github.com/exernia/botjanweb/internal/domain/entity"
@@ -37,10 +38,11 @@ type App struct {
 	SheetsRepo   *reposheets.Repository
 
 	// Use Cases
-	QrisUC    *qrisuc.UseCase
-	PaymentUC *paymentuc.UseCase
-	FamilyUC  *familyuc.UseCase
-	AccountUC *accountuc.UseCase
+	QrisUC      *qrisuc.UseCase
+	PaymentUC   *paymentuc.UseCase
+	FamilyUC    *familyuc.UseCase
+	WorkspaceUC *workspaceuc.UseCase
+	AccountUC   *accountuc.UseCase
 
 	// Domain Services
 	ConfirmationService *paymentuc.ConfirmationService
@@ -104,6 +106,11 @@ func (app *App) initUseCases() {
 		app.FamilyUC = familyuc.New(app.SheetsRepo)
 	}
 
+	// Workspace validation use case
+	if app.SheetsRepo != nil {
+		app.WorkspaceUC = workspaceuc.New(app.SheetsRepo)
+	}
+
 	// Account management use case
 	if app.SheetsRepo != nil {
 		app.AccountUC = accountuc.New(app.SheetsRepo)
@@ -117,6 +124,7 @@ func (app *App) initControllers() {
 		app.QrisUC,
 		app.PaymentUC,
 		app.FamilyUC,
+		app.WorkspaceUC,
 		app.AccountUC,
 		app.SheetsRepo, // Inventory port
 		app.Config.AllowedSenders,

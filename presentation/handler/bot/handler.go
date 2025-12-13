@@ -13,6 +13,7 @@ import (
 	familyuc "github.com/exernia/botjanweb/internal/application/service/family"
 	paymentuc "github.com/exernia/botjanweb/internal/application/service/payment"
 	qrisuc "github.com/exernia/botjanweb/internal/application/service/qris"
+	workspaceuc "github.com/exernia/botjanweb/internal/application/service/workspace"
 	"github.com/exernia/botjanweb/internal/domain/entity"
 	"github.com/exernia/botjanweb/pkg/helper/formatter"
 )
@@ -22,6 +23,7 @@ type Handler struct {
 	qrisUC           *qrisuc.UseCase
 	paymentUC        *paymentuc.UseCase
 	familyUC         *familyuc.UseCase
+	workspaceUC      *workspaceuc.UseCase
 	accountUC        *accountuc.UseCase
 	inventoryRepo    service.InventoryPort
 	messaging        service.MessagingPort
@@ -37,6 +39,7 @@ func NewHandler(
 	qrisUC *qrisuc.UseCase,
 	paymentUC *paymentuc.UseCase,
 	familyUC *familyuc.UseCase,
+	workspaceUC *workspaceuc.UseCase,
 	accountUC *accountuc.UseCase,
 	inventoryRepo service.InventoryPort,
 	allowedSenders []string,
@@ -48,6 +51,7 @@ func NewHandler(
 		qrisUC:           qrisUC,
 		paymentUC:        paymentUC,
 		familyUC:         familyUC,
+		workspaceUC:      workspaceUC,
 		accountUC:        accountUC,
 		inventoryRepo:    inventoryRepo,
 		allowedSenders:   allowedSenders,

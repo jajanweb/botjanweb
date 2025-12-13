@@ -467,6 +467,67 @@ func (r *Repository) CountFamilySlots(ctx context.Context, family string) (int, 
 	return count, nil
 }
 
+// ValidateWorkspace checks if a workspace name exists in Akun ChatGPT sheet (column C).
+// Returns true if found, false otherwise.
+func (r *Repository) ValidateWorkspace(ctx context.Context, workspaceName string) (bool, error) {
+	// Read column C (workspace) from Akun ChatGPT sheet
+	readRange := "'Akun ChatGPT'!C:C"
+	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
+	if err != nil {
+		return false, fmt.Errorf("failed to read Akun ChatGPT sheet: %w", err)
+	}
+
+	// Search for the workspace name (case-insensitive)
+	workspaceLower := strings.ToLower(strings.TrimSpace(workspaceName))
+	for _, row := range resp.Values {
+		if len(row) > 0 {
+			cellValue := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", row[0])))
+			if cellValue == workspaceLower {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+// CountWorkspaceSlots counts how many slots are used for a workspace in ChatGPT sheet (column D).
+// Returns the count of non-empty rows with matching workspace value.
+func (r *Repository) CountWorkspaceSlots(ctx context.Context, workspace string) (int, error) {
+	// Read columns B and D from ChatGPT sheet
+	// B = Nama (to check if slot is used), D = WorkSpace
+	readRange := "'ChatGPT'!B:D"
+	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
+	if err != nil {
+		return 0, fmt.Errorf("failed to read ChatGPT sheet: %w", err)
+	}
+
+	count := 0
+	workspaceLower := strings.ToLower(strings.TrimSpace(workspace))
+
+	// Skip header rows (index 0 and 1 - title and header)
+	for i, row := range resp.Values {
+		if i < 2 {
+			continue // Skip title and header rows
+		}
+		if len(row) < 3 {
+			continue // Need at least columns B, C, D
+		}
+
+		// Column B = Nama (index 0 in this range)
+		// Column D = WorkSpace (index 2 in this range)
+		nama := strings.TrimSpace(fmt.Sprintf("%v", row[0]))
+		workspaceCell := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", row[2])))
+
+		// Count if workspace matches AND slot is filled (nama not empty)
+		if workspaceCell == workspaceLower && nama != "" {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
 // AddAkunGoogle adds a new Google account to Akun Google sheet using InsertDimension.
 // Columns: A=Email, B=Sandi, C=Tanggal Aktivasi, D=Tanggal Berakhir, E=Status Dibuat, F=YT Premium
 func (r *Repository) AddAkunGoogle(ctx context.Context, akun *entity.AkunGoogle) error {

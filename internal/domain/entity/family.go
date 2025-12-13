@@ -12,14 +12,24 @@ func IsSpecialFamily(family string) bool {
 	return SpecialFamilies[family]
 }
 
-// FamilyValidation hasil validasi family.
+// FamilyValidation hasil validasi family (Gemini).
 type FamilyValidation struct {
 	IsValid      bool   // Apakah family valid
 	IsSpecial    bool   // Apakah family khusus (skip validasi Akun Google)
 	Email        string // Email family (jika bukan special)
 	UsedSlots    int    // Jumlah slot terpakai
-	MaxSlots     int    // Maksimal slot (5)
+	MaxSlots     int    // Maksimal slot (5 for Gemini)
 	ErrorMessage string // Error message if validation fails
 }
 
-// constants.MaxFamilySlots adalah batas maksimal anggota per family.
+// WorkspaceValidation hasil validasi workspace (ChatGPT).
+type WorkspaceValidation struct {
+	IsValid      bool   // Apakah workspace valid
+	Name         string // Workspace name
+	UsedSlots    int    // Jumlah slot terpakai
+	MaxSlots     int    // Maksimal slot (4 for ChatGPT)
+	ErrorMessage string // Error message if validation fails
+}
+
+// constants.MaxFamilySlots adalah batas maksimal anggota per family (Gemini).
+// constants.MaxWorkspaceSlots adalah batas maksimal anggota per workspace (ChatGPT).
