@@ -3,8 +3,11 @@ package entity
 
 // Command prefixes for bot commands.
 const (
-	CmdQris    = "#qris"
-	CmdAddAkun = "#addakun"
+	CmdQris      = "#qris"
+	CmdAddAkun   = "#addakun"
+	CmdCekSlot   = "#cekslot"
+	CmdCekKode   = "#cekkode"
+	CmdInputKode = "#inputkode"
 )
 
 // QrisCommand represents a parsed #qris command.
@@ -34,4 +37,18 @@ type QrisCommand struct {
 	IsFormMode  bool   // True if parsed from form format
 	IsHelpMode  bool   // True if command sent without parameters
 	ProductType string // Raw parameter ("google", "chatgpt")
+}
+
+// CekSlotCommand represents a parsed #cekslot command.
+type CekSlotCommand struct {
+	Product       string // "chatgpt" or "gemini"
+	AvailableOnly bool   // Only show available slots
+	IsHelpMode    bool   // True if command sent without parameters
+}
+
+// InputKodeCommand represents a parsed #inputkode command.
+type InputKodeCommand struct {
+	Email      string // Email for the redeem code
+	KodeRedeem string // The redeem code
+	IsHelpMode bool   // True if command sent without parameters
 }

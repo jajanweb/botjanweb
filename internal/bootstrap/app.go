@@ -118,6 +118,7 @@ func (app *App) initControllers() {
 		app.PaymentUC,
 		app.FamilyUC,
 		app.AccountUC,
+		app.SheetsRepo, // Inventory port
 		app.Config.AllowedSenders,
 		app.Config.SheetAkunGoogle,
 		app.Config.SheetAkunChatGPT,

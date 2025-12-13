@@ -47,6 +47,8 @@ type MessagingPort interface {
 	GetOwnID() string
 	// GetGroupJID returns the configured group JID.
 	GetGroupJID() string
+	// GetContactName returns the display name for a contact phone number.
+	GetContactName(ctx context.Context, phone string) string
 }
 
 // QrisGeneratorPort defines QRIS generation operations.
@@ -94,4 +96,17 @@ type AccountRepositoryPort interface {
 	AddAkunChatGPT(ctx context.Context, akun *entity.AkunChatGPT) error
 	// GetAccountListResult fetches all accounts and returns a summary with availability counts.
 	GetAccountListResult(ctx context.Context) (*entity.AccountListResult, error)
+}
+
+// InventoryPort defines inventory checking operations.
+type InventoryPort interface {
+	// GetSlotAvailability returns slot availability for families/workspaces.
+	// product: "ChatGPT" or "Gemini"
+	// availableOnly: if true, only return items with available slots
+	GetSlotAvailability(ctx context.Context, product string, availableOnly bool) (*entity.SlotAvailabilityResult, error)
+	// GetRedeemCodeAvailability returns available Perplexity redeem codes.
+	// availableOnly: if true, only return codes not yet activated
+	GetRedeemCodeAvailability(ctx context.Context, availableOnly bool) (*entity.RedeemCodeResult, error)
+	// AddRedeemCode adds a new redeem code to Kode Perplexity sheet.
+	AddRedeemCode(ctx context.Context, email, kodeRedeem string) error
 }

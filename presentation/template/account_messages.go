@@ -53,7 +53,6 @@ const AddAkunChatGPTFormTemplate = `#addakun chatgpt
 Email: 
 Sandi: 
 Workspace: 
-Paket: 
 ───────────────────`
 
 // AddAkunChatGPTFormHelp is the help for adding ChatGPT accounts.
@@ -64,7 +63,6 @@ const AddAkunChatGPTFormHelp = `📋 *PANDUAN TAMBAH AKUN CHATGPT*
 • *Email* - Alamat email (wajib)
 • *Sandi* - Password akun (wajib)
 • *Workspace* - Nama workspace (wajib)
-• *Paket* - Paket langganan (wajib)
 
 📌 *Contoh:*
 #addakun chatgpt
@@ -72,7 +70,6 @@ const AddAkunChatGPTFormHelp = `📋 *PANDUAN TAMBAH AKUN CHATGPT*
 Email: john@example.com
 Sandi: password123
 Workspace: TeamAlpha
-Paket: Pro
 ───────────────────`
 
 // ============================================================================

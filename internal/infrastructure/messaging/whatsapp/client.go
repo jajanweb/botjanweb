@@ -100,3 +100,34 @@ func (c *Client) GetGroupJID() string {
 func (c *Client) getMediaImage() whatsmeow.MediaType {
 	return whatsmeow.MediaImage
 }
+
+// GetContactName returns the display name for a contact.
+// It checks: PushName > FullName > FirstName > BusinessName > phone number.
+// The phone should be in format "628xxx" without @s.whatsapp.net suffix.
+func (c *Client) GetContactName(ctx context.Context, phone string) string {
+	jid := types.NewJID(phone, types.DefaultUserServer)
+
+	contact, err := c.wm.Store.Contacts.GetContact(ctx, jid)
+	if err != nil {
+		c.logger.Printf("⚠️ GetContact failed for %s: %v", phone, err)
+		return phone // Return phone as fallback
+	}
+
+	if !contact.Found {
+		return phone // No contact info cached
+	}
+
+	// Priority: PushName > FullName > FirstName > BusinessName
+	switch {
+	case contact.PushName != "":
+		return contact.PushName
+	case contact.FullName != "":
+		return contact.FullName
+	case contact.FirstName != "":
+		return contact.FirstName
+	case contact.BusinessName != "":
+		return contact.BusinessName
+	default:
+		return phone
+	}
+}

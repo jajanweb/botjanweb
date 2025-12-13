@@ -23,6 +23,7 @@ type Handler struct {
 	paymentUC        *paymentuc.UseCase
 	familyUC         *familyuc.UseCase
 	accountUC        *accountuc.UseCase
+	inventoryRepo    service.InventoryPort
 	messaging        service.MessagingPort
 	allowedSenders   []string
 	logger           *log.Logger
@@ -37,6 +38,7 @@ func NewHandler(
 	paymentUC *paymentuc.UseCase,
 	familyUC *familyuc.UseCase,
 	accountUC *accountuc.UseCase,
+	inventoryRepo service.InventoryPort,
 	allowedSenders []string,
 	sheetAkunGoogle string,
 	sheetAkunChatGPT string,
@@ -47,6 +49,7 @@ func NewHandler(
 		paymentUC:        paymentUC,
 		familyUC:         familyUC,
 		accountUC:        accountUC,
+		inventoryRepo:    inventoryRepo,
 		allowedSenders:   allowedSenders,
 		logger:           logger.Bot,
 		sheetAkunGoogle:  sheetAkunGoogle,
@@ -74,13 +77,20 @@ func (h *Handler) HandleMessage(ctx context.Context, msg *entity.Message) {
 	}
 
 	// Route based on command prefix
+	lowerText := strings.ToLower(text)
 	switch {
-	case strings.HasPrefix(strings.ToLower(text), "#qris"):
+	case strings.HasPrefix(lowerText, "#qris"):
 		h.handleQrisCommand(ctx, msg, text)
-	case strings.HasPrefix(strings.ToLower(text), "#addakun"):
+	case strings.HasPrefix(lowerText, "#addakun"):
 		h.handleAddAkunCommand(ctx, msg, text)
-	case strings.HasPrefix(strings.ToLower(text), "#listakun"):
+	case strings.HasPrefix(lowerText, "#listakun"):
 		h.handleListAkunCommand(ctx, msg, text)
+	case strings.HasPrefix(lowerText, "#cekslot"):
+		h.handleCekSlotCommand(ctx, msg, text)
+	case strings.HasPrefix(lowerText, "#cekkode"):
+		h.handleCekKodeCommand(ctx, msg, text)
+	case strings.HasPrefix(lowerText, "#inputkode"):
+		h.handleInputKodeCommand(ctx, msg, text)
 	}
 }
 
