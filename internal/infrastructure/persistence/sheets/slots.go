@@ -137,7 +137,7 @@ func (r *Repository) CountWorkspaceSlots(ctx context.Context, ownerEmail string)
 }
 
 // GetSlotAvailability returns slot availability for families/workspaces.
-// Reads from reserved area rows 108-151 in the target sheet.
+// Reads ALL rows from column D (except header) in the target sheet.
 // product: "ChatGPT" or "Gemini"
 // availableOnly: if true, only return items with available slots
 func (r *Repository) GetSlotAvailability(ctx context.Context, product string, availableOnly bool) (*entity.SlotAvailabilityResult, error) {
@@ -152,9 +152,9 @@ func (r *Repository) GetSlotAvailability(ctx context.Context, product string, av
 		maxSlots = 4
 	}
 
-	// Read from reserved area rows 108-151
+	// Read ALL rows from column B and D (except header)
 	// Column B = Nama, Column D = Family/Workspace
-	readRange := fmt.Sprintf("'%s'!B108:D151", product)
+	readRange := fmt.Sprintf("'%s'!B:D", product)
 	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read slot area: %w", err)
@@ -163,7 +163,12 @@ func (r *Repository) GetSlotAvailability(ctx context.Context, product string, av
 	// Group by family/workspace name
 	slotCounts := make(map[string]*entity.SlotInfo)
 
-	for _, row := range resp.Values {
+	// Skip header rows (first 2 rows: title and column headers)
+	for i, row := range resp.Values {
+		if i < 2 {
+			continue
+		}
+
 		// Column B (Nama) is index 0, Column D (Family) is index 2
 		var nama, familyVal string
 		if len(row) > 0 && row[0] != nil {
@@ -187,8 +192,7 @@ func (r *Repository) GetSlotAvailability(ctx context.Context, product string, av
 			}
 		}
 
-		// Increment total slots (each row is a slot)
-		// If nama is not empty, it's used
+		// Increment used slots if nama is filled
 		if nama != "" {
 			slotCounts[familyVal].UsedSlots++
 		}
@@ -206,7 +210,7 @@ func (r *Repository) GetSlotAvailability(ctx context.Context, product string, av
 			info.AvailableSlot = 0
 		}
 
-		// Filter based on availableOnly
+		// Filter based on availableOnly - skip ONLY if requested AND no available slots
 		if availableOnly && info.AvailableSlot == 0 {
 			continue
 		}
