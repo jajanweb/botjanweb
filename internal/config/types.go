@@ -11,8 +11,6 @@ package config
 import (
 	"fmt"
 	"strings"
-
-	"github.com/exernia/botjanweb/pkg/helper/formatter"
 )
 
 // Config holds all application configuration values.
@@ -87,10 +85,10 @@ func (c *Config) validate() error {
 		return fmt.Errorf("ALLOWED_SENDERS is required (at least one phone number)")
 	}
 
-	// Validate phone numbers format
+	// Validate phone numbers format (already normalized by ParsePhoneList)
 	for i, phone := range c.AllowedSenders {
-		normalized := formatter.NormalizePhone(phone)
-		if len(normalized) < 10 || len(normalized) > 15 {
+		// Phone is already normalized, just validate length
+		if len(phone) < 10 || len(phone) > 15 {
 			return fmt.Errorf("ALLOWED_SENDERS[%d] invalid phone number: %s (must be 10-15 digits)", i, phone)
 		}
 	}
