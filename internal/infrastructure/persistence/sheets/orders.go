@@ -12,17 +12,18 @@ import (
 // LogOrder logs an order to the appropriate sheet based on Produk field.
 // Always inserts at the last row of the table (below existing data).
 //
-// Spreadsheet column mapping:
+// Spreadsheet column mapping (ChatGPT):
 //
 //	A = No (auto, skip)
 //	B = Nama
 //	C = Email
-//	D = Family/Workspace Email (ChatGPT/Gemini) OR Kode Redeem (Perplexity/YouTube)
-//	E = Tanggal Pesanan
-//	F = Tanggal Berakhir (skip)
-//	G = Amount/Nominal
-//	H = Kanal
-//	I = Akun/Nomor/Username
+//	D = WorkSpace name (ChatGPT/Gemini) OR Kode Redeem (Perplexity/YouTube)
+//	E = Paket (duration: "20 Hari" or "30 Hari" for ChatGPT)
+//	F = Tanggal Pesanan
+//	G = Tanggal Berakhir (calculated: +1 month)
+//	H = Nominal
+//	I = Kanal
+//	J = Akun/Bukti Transaksi
 func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	// Determine target sheet from Produk field
 	targetSheet := r.resolveSheetName(order.Produk)
@@ -57,8 +58,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	}
 
 	// Update the row at lastRow position.
-	// For all products, update columns B, C, D, E, F, G, H, I with order data.
-	// Strategy: Update columns separately to avoid offset issues
+	// Mapping: B=Nama, C=Email, D=WorkSpace/Redeem, E=Paket, F=TglPesanan, G=TglBerakhir, H=Nominal, I=Kanal, J=Akun
 	requests := []*sheets.Request{
 		// Update B (Nama) and C (Email)
 		{
@@ -94,7 +94,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 				Fields: "userEnteredValue,chipRuns",
 			},
 		},
-		// Update D (Family or Kode Redeem) - only for redeem products or non-family orders
+		// Update D (WorkSpace/Family or Kode Redeem)
 		{
 			UpdateCells: &sheets.UpdateCellsRequest{
 				Start: &sheets.GridCoordinate{
@@ -112,7 +112,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 				Fields: "userEnteredValue",
 			},
 		},
-		// Update E (Tanggal Pesanan) and F (Tanggal Berakhir)
+		// Update E (Paket), F (Tanggal Pesanan), G (Tanggal Berakhir)
 		{
 			UpdateCells: &sheets.UpdateCellsRequest{
 				Start: &sheets.GridCoordinate{
@@ -123,9 +123,11 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 				Rows: []*sheets.RowData{
 					{
 						Values: []*sheets.CellData{
-							// E: Tanggal Pesanan
+							// E: Paket (duration)
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Paket}},
+							// F: Tanggal Pesanan
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
-							// F: Tanggal Berakhir (1 month from order date)
+							// G: Tanggal Berakhir (1 month from order date)
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
 						},
 					},
@@ -133,22 +135,22 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 				Fields: "userEnteredValue",
 			},
 		},
-		// Update G (Amount), H (Kanal), I (Akun)
+		// Update H (Nominal), I (Kanal), J (Akun/Bukti)
 		{
 			UpdateCells: &sheets.UpdateCellsRequest{
 				Start: &sheets.GridCoordinate{
 					SheetId:     sheetID,
 					RowIndex:    lastRow,
-					ColumnIndex: 6, // Column G (0-indexed)
+					ColumnIndex: 7, // Column H (0-indexed)
 				},
 				Rows: []*sheets.RowData{
 					{
 						Values: []*sheets.CellData{
-							// G: Amount
+							// H: Nominal (Amount)
 							{UserEnteredValue: &sheets.ExtendedValue{NumberValue: ptr64(float64(order.Amount))}},
-							// H: Kanal
+							// I: Kanal
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Kanal}},
-							// I: Akun
+							// J: Akun/Bukti Transaksi
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Akun}},
 						},
 					},

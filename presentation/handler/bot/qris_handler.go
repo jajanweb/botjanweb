@@ -107,6 +107,7 @@ func (h *Handler) handleQrisForm(ctx context.Context, msg *entity.Message, cmd *
 		Nama:              cmd.Nama,
 		Email:             cmd.Email,
 		Family:            familyValue,
+		Paket:             cmd.Paket, // Package duration (20/30 Hari)
 		Deskripsi:         cmd.Deskripsi,
 		Kanal:             cmd.Kanal,
 		Akun:              cmd.Akun,
@@ -203,6 +204,7 @@ func (h *Handler) handleQrisSelf(ctx context.Context, msg *entity.Message, text 
 		Nama:              cmd.Nama,
 		Email:             cmd.Email,
 		Family:            familyValue,
+		Paket:             cmd.Paket, // Package duration (20/30 Hari)
 		Deskripsi:         cmd.Deskripsi,
 		Kanal:             cmd.Kanal,
 		Akun:              akun,

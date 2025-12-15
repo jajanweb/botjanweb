@@ -21,6 +21,7 @@ type PendingPayment struct {
 	Nama      string // Customer name
 	Email     string // Customer email
 	Family    string // Family plan name
+	Paket     string // Package duration ("20 Hari" or "30 Hari")
 	Deskripsi string // Description/notes
 	Kanal     string // Sales channel (default: WhatsApp)
 	Akun      string // Account identifier (default: sender phone)
@@ -38,12 +39,13 @@ type Order struct {
 	Produk         string    // Determines target sheet
 	Nama           string    // B: Nama
 	Email          string    // C: Email
-	Family         string    // D: Family (for ChatGPT/Gemini) or empty
+	Family         string    // D: Family/WorkSpace (for ChatGPT/Gemini) or empty
 	KodeRedeem     string    // D: Kode Redeem (for Perplexity/YouTube)
-	TanggalPesanan time.Time // E: Tanggal Pesanan
-	Amount         int       // G: Amount/Nominal
-	Kanal          string    // H: Kanal
-	Akun           string    // I: Akun/Nomor/Username
+	Paket          string    // E: Paket ("20 Hari" or "30 Hari" for ChatGPT)
+	TanggalPesanan time.Time // F: Tanggal Pesanan
+	Amount         int       // H: Amount/Nominal
+	Kanal          string    // I: Kanal
+	Akun           string    // J: Akun/Nomor/Username (or Bukti Transaksi)
 }
 
 // NewOrderFromPending creates an Order entity from a confirmed PendingPayment.
@@ -54,6 +56,7 @@ func NewOrderFromPending(pending *PendingPayment) *Order {
 		Email:          pending.Email,
 		Family:         pending.Family,
 		KodeRedeem:     "", // Will be filled manually by admin for redeem-based products
+		Paket:          pending.Paket,
 		TanggalPesanan: time.Now(),
 		Amount:         pending.Amount,
 		Kanal:          pending.Kanal,
