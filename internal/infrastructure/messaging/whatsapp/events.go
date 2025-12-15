@@ -35,6 +35,7 @@ func (c *Client) eventHandler(evt interface{}) {
 // handleIncomingMessage converts WhatsMeow message to entity.Message.
 func (c *Client) handleIncomingMessage(evt *events.Message) {
 	if c.handler == nil {
+		c.logger.Println("⚠️ [DEBUG] Handler is nil, skipping message")
 		return
 	}
 
@@ -42,11 +43,15 @@ func (c *Client) handleIncomingMessage(evt *events.Message) {
 	// These show as WARN in logs: "Unavailable message ... (type: "")"
 	// Common with first messages from new contacts during E2E setup
 	if evt.UnavailableRequestID != "" {
+		c.logger.Printf("⚠️ [DEBUG] Skipping unavailable message %s from %s (E2E key not synced yet)",
+			evt.Info.ID, evt.Info.Sender.User)
 		return
 	}
 
 	msg := evt.Message
 	if msg == nil {
+		c.logger.Printf("⚠️ [DEBUG] Message content is nil for %s from %s",
+			evt.Info.ID, evt.Info.Sender.User)
 		return
 	}
 
@@ -66,12 +71,31 @@ func (c *Client) handleIncomingMessage(evt *events.Message) {
 		return
 	}
 
+	// Log incoming message for debugging
+	c.logger.Printf("📨 [DEBUG] Received: from=%s server=%s chat=%s text=%q",
+		evt.Info.Sender.User, evt.Info.Sender.Server, evt.Info.Chat.String(), truncateText(text, 50))
+
 	info := evt.Info
+
+	// Determine sender phone - handle LID (Linked ID) format
+	senderPhone := info.Sender.User
+	if info.Sender.Server == "lid" {
+		// LID users have hidden phone numbers - try to resolve
+		pn, err := c.wm.Store.LIDs.GetPNForLID(context.Background(), info.Sender)
+		if err == nil && !pn.IsEmpty() {
+			senderPhone = pn.User
+			c.logger.Printf("📞 Resolved sender LID %s → PN %s", info.Sender.User, pn.User)
+		} else {
+			c.logger.Printf("⚠️ [DEBUG] Could not resolve sender LID %s to phone number", info.Sender.User)
+			// Keep LID as fallback - may still match if ALLOWED_SENDERS contains LID
+		}
+	}
+
 	entityMsg := &entity.Message{
 		ID:            info.ID,
 		ChatID:        info.Chat.String(),
 		SenderID:      info.Sender.String(),
-		SenderPhone:   info.Sender.User,
+		SenderPhone:   senderPhone,
 		Text:          strings.TrimSpace(text),
 		Timestamp:     info.Timestamp,
 		IsSelfMessage: info.IsFromMe,
@@ -136,4 +160,12 @@ func (c *Client) tryResolveLIDPhone(lid types.JID) string {
 	}
 
 	return "Private User"
+}
+
+// truncateText truncates text for logging purposes.
+func truncateText(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }

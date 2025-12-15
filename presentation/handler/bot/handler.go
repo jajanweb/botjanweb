@@ -72,6 +72,8 @@ func (h *Handler) HandleMessage(ctx context.Context, msg *entity.Message) {
 	// For self-messages (bot sending to customer), always allow
 	// For other messages, check if sender is allowed
 	if !msg.IsSelfMessage && !h.isFromAllowedSender(msg.SenderPhone) {
+		h.logger.Printf("🚫 [DEBUG] Sender not allowed: %s (normalized: %s)",
+			msg.SenderPhone, formatter.NormalizePhone(msg.SenderPhone))
 		return
 	}
 
@@ -80,8 +82,13 @@ func (h *Handler) HandleMessage(ctx context.Context, msg *entity.Message) {
 		return
 	}
 
-	// Route based on command prefix
+	// Log command detection
 	lowerText := strings.ToLower(text)
+	if strings.HasPrefix(lowerText, "#") {
+		h.logger.Printf("🔍 [DEBUG] Command detected: %q from %s", text, msg.SenderPhone)
+	}
+
+	// Route based on command prefix
 	switch {
 	case strings.HasPrefix(lowerText, "#qris"):
 		h.handleQrisCommand(ctx, msg, text)
