@@ -80,16 +80,20 @@ func (c *Config) validate() error {
 		return fmt.Errorf("MERCHANT_NAME is required for QRIS display")
 	}
 
-	// Required: At least one allowed sender
+	// ALLOWED_SENDERS validation
+	// Special value "*" means allow all senders (useful for debugging)
 	if len(c.AllowedSenders) == 0 {
-		return fmt.Errorf("ALLOWED_SENDERS is required (at least one phone number)")
+		return fmt.Errorf("ALLOWED_SENDERS is required (at least one phone number, or '*' to allow all)")
 	}
 
-	// Validate phone numbers format (already normalized by ParsePhoneList)
-	for i, phone := range c.AllowedSenders {
-		// Phone is already normalized, just validate length
-		if len(phone) < 10 || len(phone) > 15 {
-			return fmt.Errorf("ALLOWED_SENDERS[%d] invalid phone number: %s (must be 10-15 digits)", i, phone)
+	// Skip validation if wildcard
+	if !(len(c.AllowedSenders) == 1 && c.AllowedSenders[0] == "*") {
+		// Validate phone numbers format (already normalized by ParsePhoneList)
+		for i, phone := range c.AllowedSenders {
+			// Phone is already normalized, just validate length
+			if len(phone) < 10 || len(phone) > 15 {
+				return fmt.Errorf("ALLOWED_SENDERS[%d] invalid phone number: %s (must be 10-15 digits)", i, phone)
+			}
 		}
 	}
 

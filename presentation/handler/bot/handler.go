@@ -107,8 +107,13 @@ func (h *Handler) HandleMessage(ctx context.Context, msg *entity.Message) {
 
 // isFromAllowedSender checks if the sender is allowed to use the bot.
 func (h *Handler) isFromAllowedSender(phone string) bool {
+	// No restriction if empty or wildcard "*"
 	if len(h.allowedSenders) == 0 {
-		return true // No restriction
+		return true
+	}
+	if len(h.allowedSenders) == 1 && h.allowedSenders[0] == "*" {
+		h.logger.Printf("✅ [DEBUG] Wildcard mode: allowing all senders")
+		return true
 	}
 
 	senderNormalized := formatter.NormalizePhone(phone)
