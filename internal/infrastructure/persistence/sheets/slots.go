@@ -35,8 +35,8 @@ func (r *Repository) ValidateFamily(ctx context.Context, familyEmail string) (bo
 // CountFamilySlots counts how many slots are used for a family in Gemini sheet (column D).
 // Returns the count of non-empty rows with matching family value.
 func (r *Repository) CountFamilySlots(ctx context.Context, family string) (int, error) {
-	// Read columns B and D from Gemini sheet
-	// B = Nama (to check if slot is used), D = Family
+	// Read columns B, C, and D from Gemini sheet
+	// C = Email (to check if slot is used), D = Family
 	readRange := "'Gemini'!B:D"
 	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
 	if err != nil {
@@ -55,13 +55,13 @@ func (r *Repository) CountFamilySlots(ctx context.Context, family string) (int, 
 			continue // Need at least columns B, C, D
 		}
 
-		// Column B = Nama (index 0 in this range)
+		// Column C = Email (index 1 in this range)
 		// Column D = Family (index 2 in this range)
-		nama := strings.TrimSpace(fmt.Sprintf("%v", row[0]))
+		email := strings.TrimSpace(fmt.Sprintf("%v", row[1]))
 		familyCell := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", row[2])))
 
-		// Count if family matches AND slot is filled (nama not empty)
-		if familyCell == familyLower && nama != "" {
+		// Count if family matches AND slot is filled (email not empty)
+		if familyCell == familyLower && email != "" {
 			count++
 		}
 	}
@@ -102,8 +102,8 @@ func (r *Repository) ValidateWorkspaceEmail(ctx context.Context, ownerEmail stri
 // Column D now contains owner email (not workspace name).
 // Returns the count of non-empty rows with matching owner email.
 func (r *Repository) CountWorkspaceSlots(ctx context.Context, ownerEmail string) (int, error) {
-	// Read columns B and D from ChatGPT sheet
-	// B = Nama (to check if slot is used), D = Owner Email
+	// Read columns B, C, and D from ChatGPT sheet
+	// C = Email (to check if slot is used), D = Owner Email
 	readRange := "'ChatGPT'!B:D"
 	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
 	if err != nil {
@@ -122,13 +122,13 @@ func (r *Repository) CountWorkspaceSlots(ctx context.Context, ownerEmail string)
 			continue // Need at least columns B, C, D
 		}
 
-		// Column B = Nama (index 0 in this range)
+		// Column C = Email (index 1 in this range)
 		// Column D = Owner Email (index 2 in this range)
-		nama := strings.TrimSpace(fmt.Sprintf("%v", row[0]))
+		email := strings.TrimSpace(fmt.Sprintf("%v", row[1]))
 		ownerEmailCell := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", row[2])))
 
-		// Count if owner email matches AND slot is filled (nama not empty)
-		if ownerEmailCell == emailLower && nama != "" {
+		// Count if owner email matches AND slot is filled (email not empty)
+		if ownerEmailCell == emailLower && email != "" {
 			count++
 		}
 	}
@@ -152,8 +152,8 @@ func (r *Repository) GetSlotAvailability(ctx context.Context, product string, av
 		maxSlots = 4
 	}
 
-	// Read ALL rows from column B and D (except header)
-	// Column B = Nama, Column D = Family/Workspace
+	// Read ALL rows from column B, C, and D (except header)
+	// Column C = Email, Column D = Family/Workspace
 	readRange := fmt.Sprintf("'%s'!B:D", product)
 	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
 	if err != nil {
@@ -169,10 +169,10 @@ func (r *Repository) GetSlotAvailability(ctx context.Context, product string, av
 			continue
 		}
 
-		// Column B (Nama) is index 0, Column D (Family) is index 2
-		var nama, familyVal string
-		if len(row) > 0 && row[0] != nil {
-			nama = strings.TrimSpace(fmt.Sprintf("%v", row[0]))
+		// Column C (Email) is index 1, Column D (Family) is index 2
+		var email, familyVal string
+		if len(row) > 1 && row[1] != nil {
+			email = strings.TrimSpace(fmt.Sprintf("%v", row[1]))
 		}
 		if len(row) > 2 && row[2] != nil {
 			familyVal = strings.TrimSpace(fmt.Sprintf("%v", row[2]))
@@ -192,8 +192,8 @@ func (r *Repository) GetSlotAvailability(ctx context.Context, product string, av
 			}
 		}
 
-		// Increment used slots if nama is filled
-		if nama != "" {
+		// Increment used slots if email is filled
+		if email != "" {
 			slotCounts[familyVal].UsedSlots++
 		}
 	}
