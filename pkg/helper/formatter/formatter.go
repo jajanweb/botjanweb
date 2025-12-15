@@ -11,12 +11,14 @@ var digitOnlyRegex = regexp.MustCompile(`\D`)
 // Phone formatting functions.
 
 // NormalizePhone converts phone number to international format (628xxx).
+// For Indonesian numbers: converts to 62xxx format
+// For international numbers: returns digits-only format for consistent matching
 // Examples:
 //   - "08123456789" → "628123456789"
 //   - "8123456789" → "628123456789"
 //   - "628123456789" → "628123456789"
 //   - "+628123456789" → "628123456789"
-//   - "0196177278545944" (LID) → "0196177278545944" (unchanged, not a valid phone)
+//   - "196177278545944" (international) → "196177278545944" (digits only)
 func NormalizePhone(phone string) string {
 	// Remove all non-digits
 	digits := digitOnlyRegex.ReplaceAllString(phone, "")
@@ -32,8 +34,8 @@ func NormalizePhone(phone string) string {
 		(digits[0] == '0' || digits[0] == '8' || (len(digits) >= 3 && digits[:2] == "62"))
 
 	if !isIndonesianFormat {
-		// Not a valid Indonesian phone number (probably LID or other format)
-		return phone // Return original unchanged
+		// International number or other format: return digits for consistent matching
+		return digits
 	}
 
 	// Handle Indonesian format (0xxx)
