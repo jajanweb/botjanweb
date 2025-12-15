@@ -117,49 +117,9 @@ func BuildQRISCaption(amount int, deskripsi string) string {
 	return b.String()
 }
 
-// BuildQRISCaptionFromPending builds caption for QRIS image from pending payment.
-func BuildQRISCaptionFromPending(pending *entity.PendingPayment) string {
-	var b strings.Builder
-
-	b.WriteString("💳 *QRIS PEMBAYARAN*\n\n")
-	b.WriteString("━━━━━━━━━━━━━━━━━━━━\n")
-	b.WriteString("📋 *Detail Pesanan:*\n")
-	b.WriteString(fmt.Sprintf("• Produk: %s\n", pending.Produk))
-	b.WriteString(fmt.Sprintf("• Nama: %s\n", pending.Nama))
-	b.WriteString(fmt.Sprintf("• Email: %s\n", pending.Email))
-	if pending.Family != "" {
-		b.WriteString(fmt.Sprintf("• Family: %s\n", pending.Family))
-	}
-	b.WriteString(fmt.Sprintf("• Nominal: %s\n", formatter.FormatRupiah(pending.Amount)))
-	b.WriteString(fmt.Sprintf("• Kanal: %s\n", pending.Kanal))
-	if pending.Akun != "" {
-		b.WriteString(fmt.Sprintf("• Akun: %s\n", pending.Akun))
-	}
-	b.WriteString("\n📱 Scan QRIS di atas untuk bayar")
-
-	return b.String()
-}
-
 // BuildQrisFormCaption builds simple caption for form template.
 func BuildQrisFormCaption(cmd *entity.QrisCommand) string {
 	return fmt.Sprintf("📝 *Form Order %s*\n\nIsi form di atas dan kirim ulang.", cmd.Produk)
-}
-
-// BuildLegacyQrisCaption builds legacy QRIS caption (simplified).
-func BuildLegacyQrisCaption(nama, email, family, kanal string, amount int) string {
-	var b strings.Builder
-
-	b.WriteString("💳 *QRIS PEMBAYARAN*\n\n")
-	b.WriteString(fmt.Sprintf("• Nama: %s\n", nama))
-	b.WriteString(fmt.Sprintf("• Email: %s\n", email))
-	if family != "" {
-		b.WriteString(fmt.Sprintf("• Family: %s\n", family))
-	}
-	b.WriteString(fmt.Sprintf("• Nominal: %s\n", formatter.FormatRupiah(amount)))
-	b.WriteString(fmt.Sprintf("• Kanal: %s\n", kanal))
-	b.WriteString("\n📱 Scan QRIS untuk bayar")
-
-	return b.String()
 }
 
 // BuildSelfQrisNotification builds initial notification for self-QRIS (before payment).

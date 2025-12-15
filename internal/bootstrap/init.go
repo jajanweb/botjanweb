@@ -46,7 +46,6 @@ func (app *App) initRepositories(ctx context.Context) error {
 			app.Config.GoogleSpreadsheetID,
 			app.Config.GoogleCredentialsPath,
 			app.Config.GoogleCredentialsJSON,
-			"",                          // qrisSheet (legacy, not used)
 			app.Config.SheetOrders,      // ordersSheet
 			app.Config.SheetAkunGoogle,  // akunGoogleSheet
 			app.Config.SheetAkunChatGPT, // akunChatGPTSheet

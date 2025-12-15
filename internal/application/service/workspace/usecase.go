@@ -24,28 +24,29 @@ func New(validator usecase.WorkspaceValidatorPort) *UseCase {
 	}
 }
 
-// ValidateWorkspace validates a workspace value before QRIS generation.
-// Returns WorkspaceValidation with details about the validation result.
-func (uc *UseCase) ValidateWorkspace(ctx context.Context, workspace string) (*entity.WorkspaceValidation, error) {
+// ValidateWorkspace validates a workspace owner email before QRIS generation.
+// Input: ownerEmail (e.g., "gptadmin03@jajanweb.id")
+// Returns WorkspaceValidation with slot details.
+func (uc *UseCase) ValidateWorkspace(ctx context.Context, ownerEmail string) (*entity.WorkspaceValidation, error) {
 	result := &entity.WorkspaceValidation{
-		Name:     workspace,
-		MaxSlots: constants.MaxWorkspaceSlots,
+		OwnerEmail: ownerEmail,
+		MaxSlots:   constants.MaxWorkspaceSlots,
 	}
 
-	// Validate workspace exists in Akun ChatGPT
-	exists, err := uc.validator.ValidateWorkspace(ctx, workspace)
+	// Validate email exists in Akun ChatGPT sheet
+	exists, err := uc.validator.ValidateWorkspaceEmail(ctx, ownerEmail)
 	if err != nil {
 		return nil, fmt.Errorf("gagal validasi workspace: %w", err)
 	}
 
 	if !exists {
 		result.IsValid = false
-		result.ErrorMessage = fmt.Sprintf("Workspace '%s' tidak ditemukan di Akun ChatGPT", workspace)
+		result.ErrorMessage = fmt.Sprintf("Email workspace '%s' tidak ditemukan di Akun ChatGPT", ownerEmail)
 		return result, domain.ErrWorkspaceNotFound
 	}
 
-	// Count used slots
-	count, err := uc.validator.CountWorkspaceSlots(ctx, workspace)
+	// Count used slots for this owner email in ChatGPT sheet (column D)
+	count, err := uc.validator.CountWorkspaceSlots(ctx, ownerEmail)
 	if err != nil {
 		return nil, fmt.Errorf("gagal mengecek slot workspace: %w", err)
 	}
@@ -54,7 +55,7 @@ func (uc *UseCase) ValidateWorkspace(ctx context.Context, workspace string) (*en
 	// Check if full
 	if count >= constants.MaxWorkspaceSlots {
 		result.IsValid = false
-		result.ErrorMessage = fmt.Sprintf("Workspace '%s' sudah penuh (%d/%d slot terpakai)", workspace, count, constants.MaxWorkspaceSlots)
+		result.ErrorMessage = fmt.Sprintf("Workspace '%s' sudah penuh (%d/%d slot terpakai)", ownerEmail, count, constants.MaxWorkspaceSlots)
 		return result, domain.ErrWorkspaceFull
 	}
 
@@ -66,7 +67,7 @@ func (uc *UseCase) ValidateWorkspace(ctx context.Context, workspace string) (*en
 func FormatSlotStatus(validation *entity.WorkspaceValidation) string {
 	remaining := validation.MaxSlots - validation.UsedSlots
 	if remaining <= 0 {
-		return fmt.Sprintf("❌ %s: Penuh (%d/%d)", validation.Name, validation.UsedSlots, validation.MaxSlots)
+		return fmt.Sprintf("❌ %s: Penuh (%d/%d)", validation.OwnerEmail, validation.UsedSlots, validation.MaxSlots)
 	}
-	return fmt.Sprintf("✅ %s: %d/%d terpakai, %d tersedia", validation.Name, validation.UsedSlots, validation.MaxSlots, remaining)
+	return fmt.Sprintf("✅ %s: %d/%d terpakai, %d tersedia", validation.OwnerEmail, validation.UsedSlots, validation.MaxSlots, remaining)
 }

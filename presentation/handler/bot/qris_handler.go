@@ -55,13 +55,15 @@ func (h *Handler) handleQrisForm(ctx context.Context, msg *entity.Message, cmd *
 	}
 
 	// Validate Workspace if provided (for ChatGPT)
-	if _, errorMsg, err := h.validateFamilyOrWorkspace(ctx, "Workspace", cmd.Workspace); err != nil {
-		h.sendErrorReply(ctx, msg, errorMsg)
-		// Also send to group
-		if _, err := h.messaging.SendTextToGroup(ctx, errorMsg); err != nil {
-			h.logger.Printf("⚠️ Gagal kirim error ke grup: %v", err)
+	if cmd.Workspace != "" {
+		if _, errorMsg, err := h.validateFamilyOrWorkspace(ctx, "Workspace", cmd.Workspace); err != nil {
+			h.sendErrorReply(ctx, msg, errorMsg)
+			// Also send to group
+			if _, err := h.messaging.SendTextToGroup(ctx, errorMsg); err != nil {
+				h.logger.Printf("⚠️ Gagal kirim error ke grup: %v", err)
+			}
+			return
 		}
-		return
 	}
 
 	result, err := h.qrisUC.GenerateQRIS(ctx, cmd, msg)
@@ -85,6 +87,14 @@ func (h *Handler) handleQrisForm(ctx context.Context, msg *entity.Message, cmd *
 		// Continue - QRIS already sent successfully
 	}
 
+	// Determine Family field value:
+	// - For ChatGPT: use workspace owner email (stored in cmd.Workspace)
+	// - For Gemini: use family name (stored in cmd.Family)
+	familyValue := cmd.Family
+	if cmd.Workspace != "" {
+		familyValue = cmd.Workspace // ChatGPT uses owner email
+	}
+
 	pending := &entity.PendingPayment{
 		MessageID:         qrisMsgID,
 		OriginalMessageID: msg.ID,
@@ -96,7 +106,7 @@ func (h *Handler) handleQrisForm(ctx context.Context, msg *entity.Message, cmd *
 		Produk:            cmd.Produk,
 		Nama:              cmd.Nama,
 		Email:             cmd.Email,
-		Family:            cmd.Family,
+		Family:            familyValue,
 		Deskripsi:         cmd.Deskripsi,
 		Kanal:             cmd.Kanal,
 		Akun:              cmd.Akun,
@@ -128,13 +138,15 @@ func (h *Handler) handleQrisSelf(ctx context.Context, msg *entity.Message, text 
 	}
 
 	// Validate Workspace if provided (for ChatGPT)
-	if _, errorMsg, err := h.validateFamilyOrWorkspace(ctx, "Workspace", cmd.Workspace); err != nil {
-		// Send error to group
-		errorMsg = "❌ Self-QRIS Gagal: " + errorMsg[2:] // Remove "❌ " prefix and add Self-QRIS prefix
-		if _, err := h.messaging.SendTextToGroup(ctx, errorMsg); err != nil {
-			h.logger.Printf("⚠️ Gagal kirim error ke grup: %v", err)
+	if cmd.Workspace != "" {
+		if _, errorMsg, err := h.validateFamilyOrWorkspace(ctx, "Workspace", cmd.Workspace); err != nil {
+			// Send error to group
+			errorMsg = "❌ Self-QRIS Gagal: " + errorMsg[2:] // Remove "❌ " prefix and add Self-QRIS prefix
+			if _, err := h.messaging.SendTextToGroup(ctx, errorMsg); err != nil {
+				h.logger.Printf("⚠️ Gagal kirim error ke grup: %v", err)
+			}
+			return
 		}
-		return
 	}
 
 	result, err := h.qrisUC.GenerateQRIS(ctx, cmd, msg)
@@ -169,6 +181,14 @@ func (h *Handler) handleQrisSelf(ctx context.Context, msg *entity.Message, text 
 		akun = msg.RecipientPhone
 	}
 
+	// Determine Family field value:
+	// - For ChatGPT: use workspace owner email (stored in cmd.Workspace)
+	// - For Gemini: use family name (stored in cmd.Family)
+	familyValue := cmd.Family
+	if cmd.Workspace != "" {
+		familyValue = cmd.Workspace // ChatGPT uses owner email
+	}
+
 	pending := &entity.PendingPayment{
 		MessageID:         qrisMsgID,
 		OriginalMessageID: msg.ID,
@@ -182,7 +202,7 @@ func (h *Handler) handleQrisSelf(ctx context.Context, msg *entity.Message, text 
 		Produk:            cmd.Produk,
 		Nama:              cmd.Nama,
 		Email:             cmd.Email,
-		Family:            cmd.Family,
+		Family:            familyValue,
 		Deskripsi:         cmd.Deskripsi,
 		Kanal:             cmd.Kanal,
 		Akun:              akun,

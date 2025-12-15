@@ -90,11 +90,11 @@ type FamilyValidatorPort interface {
 
 // WorkspaceValidatorPort defines workspace validation operations for ChatGPT.
 type WorkspaceValidatorPort interface {
-	// ValidateWorkspace checks if a workspace name exists in Akun ChatGPT sheet.
+	// ValidateWorkspaceEmail checks if workspace owner email exists in Akun ChatGPT sheet (column A).
 	// Returns true if found, false otherwise.
-	ValidateWorkspace(ctx context.Context, workspaceName string) (bool, error)
-	// CountWorkspaceSlots counts how many slots are used for a workspace in ChatGPT sheet.
-	CountWorkspaceSlots(ctx context.Context, workspace string) (int, error)
+	ValidateWorkspaceEmail(ctx context.Context, ownerEmail string) (bool, error)
+	// CountWorkspaceSlots counts how many slots are used for an owner email in ChatGPT sheet (column D).
+	CountWorkspaceSlots(ctx context.Context, ownerEmail string) (int, error)
 }
 
 // AccountRepositoryPort defines account management operations.

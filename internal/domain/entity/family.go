@@ -25,7 +25,7 @@ type FamilyValidation struct {
 // WorkspaceValidation hasil validasi workspace (ChatGPT).
 type WorkspaceValidation struct {
 	IsValid      bool   // Apakah workspace valid
-	Name         string // Workspace name
+	OwnerEmail   string // Email pemilik workspace (input dari user)
 	UsedSlots    int    // Jumlah slot terpakai
 	MaxSlots     int    // Maksimal slot (4 for ChatGPT)
 	ErrorMessage string // Error message if validation fails

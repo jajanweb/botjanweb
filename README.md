@@ -195,9 +195,7 @@ botjanweb/
 │   └── botjanweb/          # Main bot entry point
 ├── internal/
 │   ├── application/        # Application business logic
-│   │   ├── service/        # Application services (qris, payment, family, account)
-│   │   ├── usecase/        # Reserved: Complex use case orchestrations
-│   │   └── dto/            # Reserved: Data transfer objects
+│   │   └── service/        # Application services (qris, payment, family, workspace, account)
 │   ├── domain/             # Core business layer
 │   │   ├── entity/         # Domain entities
 │   │   └── repository/     # Repository interfaces (ports)

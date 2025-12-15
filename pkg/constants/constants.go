@@ -58,9 +58,3 @@ const (
 	LogPrefixQRIS         = "[QRIS] "
 	LogPrefixBot          = "[BOT] "
 )
-
-// Special family groups that require special handling.
-var SpecialFamilies = map[string]bool{
-	"jancokbot": true,
-	"jancok":    true,
-}

@@ -40,10 +40,9 @@ type Config struct {
 	GoogleCredentialsJSON string // Google credentials JSON content (for Heroku/cloud deployment)
 
 	// Sheet names for different data types
-	SheetQRISTransactions string // Name of the QRIS transactions sheet (logging)
-	SheetOrders           string // Name of the orders sheet (customer orders)
-	SheetAkunGoogle       string // Name of the Google accounts sheet (account management)
-	SheetAkunChatGPT      string // Name of the ChatGPT accounts sheet (account management)
+	SheetOrders      string // Name of the orders sheet (customer orders)
+	SheetAkunGoogle  string // Name of the Google accounts sheet (account management)
+	SheetAkunChatGPT string // Name of the ChatGPT accounts sheet (account management)
 
 	// Default values for orders
 	DefaultKanal string // Default sales channel (e.g., "Threads")

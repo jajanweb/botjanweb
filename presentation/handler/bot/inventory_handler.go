@@ -107,9 +107,10 @@ func (h *Handler) sendSlotAvailabilityResult(ctx context.Context, msg *entity.Me
 
 	for _, slot := range result.Slots {
 		emoji := "✅"
-		if slot.AvailableSlot == 0 {
+		switch slot.AvailableSlot {
+		case 0:
 			emoji = "❌"
-		} else if slot.AvailableSlot == 1 {
+		case 1:
 			emoji = "⚠️"
 		}
 
