@@ -57,9 +57,21 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 		columnDValue = order.Family
 	}
 
-	// Update the row at lastRow position.
+	// INSERT NEW ROW + UPDATE CELLS (sama seperti #addakun)
 	// Mapping: B=Nama, C=Email, D=WorkSpace/Redeem, E=Paket, F=TglPesanan, G=TglBerakhir, H=Nominal, I=Kanal, J=Akun
 	requests := []*sheets.Request{
+		// 🆕 INSERT 1 ROW at lastRow position (SEBELUM update cells)
+		{
+			InsertDimension: &sheets.InsertDimensionRequest{
+				Range: &sheets.DimensionRange{
+					SheetId:    sheetID,
+					Dimension:  "ROWS",
+					StartIndex: lastRow,
+					EndIndex:   lastRow + 1,
+				},
+				InheritFromBefore: true,
+			},
+		},
 		// Update B (Nama) and C (Email)
 		{
 			UpdateCells: &sheets.UpdateCellsRequest{
