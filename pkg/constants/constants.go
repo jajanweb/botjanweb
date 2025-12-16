@@ -11,20 +11,6 @@ const (
 	DefaultKanal = "Threads"
 )
 
-// QRIS rendering constants.
-const (
-	DefaultQRSize = 256
-	QRMargin      = 10
-
-	// Image dimensions
-	QRWidth  = 1080
-	QRHeight = 1920
-
-	// Colors
-	ColorWhite = "#FFFFFF"
-	ColorBlack = "#000000"
-)
-
 // Family plan constants.
 const (
 	MaxFamilySlots    = 5 // Gemini family (max 5 members)
@@ -39,11 +25,7 @@ const (
 
 // Format constants.
 const (
-	DateFormat          = "02-01-2006"
-	DateTimeFormat      = "02-01-2006 15:04:05"
-	DateTimeWIBFormat   = "02-01-2006 15:04:05 WIB"
-	ShortDateFormat     = "02/01"
-	ShortDateTimeFormat = "02/01 15:04"
+	DateTimeWIBFormat = "02-01-2006 15:04:05 WIB"
 )
 
 // Log prefixes.

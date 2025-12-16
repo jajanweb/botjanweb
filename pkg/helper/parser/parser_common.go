@@ -1,4 +1,4 @@
-// Package bot provides WhatsApp bot message parsing and handling.
+// Package parser provides command and form parsing utilities.
 package parser
 
 // ============================================================================
