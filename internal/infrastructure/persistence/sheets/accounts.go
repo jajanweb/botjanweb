@@ -56,21 +56,8 @@ func (r *Repository) AddAkunGoogle(ctx context.Context, akun *entity.AkunGoogle)
 				Rows: []*sheets.RowData{
 					{
 						Values: []*sheets.CellData{
-							// A: Email (Person Smart Chip)
-							{
-								UserEnteredValue: &sheets.ExtendedValue{StringValue: ptr("@")},
-								ChipRuns: []*sheets.ChipRun{
-									{
-										StartIndex: 0,
-										Chip: &sheets.Chip{
-											PersonProperties: &sheets.PersonProperties{
-												Email:         akun.Email,
-												DisplayFormat: "EMAIL",
-											},
-										},
-									},
-								},
-							},
+							// A: Email (text biasa)
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &akun.Email}},
 							// B: Sandi
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &akun.Sandi}},
 							// C: Tanggal Aktivasi
@@ -84,7 +71,7 @@ func (r *Repository) AddAkunGoogle(ctx context.Context, akun *entity.AkunGoogle)
 						},
 					},
 				},
-				Fields: "userEnteredValue,chipRuns",
+				Fields: "userEnteredValue",
 			},
 		},
 	}

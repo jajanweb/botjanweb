@@ -85,25 +85,12 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 						Values: []*sheets.CellData{
 							// B: Nama
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Nama}},
-							// C: Email (Person Smart Chip)
-							{
-								UserEnteredValue: &sheets.ExtendedValue{StringValue: ptr("@")},
-								ChipRuns: []*sheets.ChipRun{
-									{
-										StartIndex: 0,
-										Chip: &sheets.Chip{
-											PersonProperties: &sheets.PersonProperties{
-												Email:         order.Email,
-												DisplayFormat: "EMAIL",
-											},
-										},
-									},
-								},
-							},
+							// C: Email (text biasa)
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Email}},
 						},
 					},
 				},
-				Fields: "userEnteredValue,chipRuns",
+				Fields: "userEnteredValue",
 			},
 		},
 		// Update D (WorkSpace/Family or Kode Redeem)

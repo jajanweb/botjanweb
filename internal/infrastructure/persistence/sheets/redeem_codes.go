@@ -136,21 +136,8 @@ func (r *Repository) AddRedeemCode(ctx context.Context, email, kodeRedeem string
 						Values: []*sheets.CellData{
 							// A: No
 							{UserEnteredValue: &sheets.ExtendedValue{NumberValue: &noValue}},
-							// B: Email (Person Smart Chip)
-							{
-								UserEnteredValue: &sheets.ExtendedValue{StringValue: ptr("@")},
-								ChipRuns: []*sheets.ChipRun{
-									{
-										StartIndex: 0,
-										Chip: &sheets.Chip{
-											PersonProperties: &sheets.PersonProperties{
-												Email:         email,
-												DisplayFormat: "EMAIL",
-											},
-										},
-									},
-								},
-							},
+							// B: Email (text biasa)
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &email}},
 							// C: Kode redeem
 							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &kodeRedeem}},
 							// D: Tanggal aktivasi (empty)
@@ -160,7 +147,7 @@ func (r *Repository) AddRedeemCode(ctx context.Context, email, kodeRedeem string
 						},
 					},
 				},
-				Fields: "userEnteredValue,chipRuns",
+				Fields: "userEnteredValue",
 			},
 		},
 	}
