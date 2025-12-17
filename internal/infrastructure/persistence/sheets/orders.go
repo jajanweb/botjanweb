@@ -37,8 +37,9 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	// Check if this is a redeem-based product (Perplexity/YouTube)
 	isRedeemProduct := order.Produk == "Perplexity" || order.Produk == "YouTube"
 
-	// Always insert at the last row of the table (column D determines table boundary)
-	lastRow, err := r.findLastFamilyRow(targetSheet)
+	// Always insert at the last row of the table
+	// Use column B (Nama) instead of column D because column D can be empty for redeem products
+	lastRow, err := r.findLastTableRowByColumn(targetSheet, "B")
 	if err != nil {
 		return fmt.Errorf("failed to find last table row: %w", err)
 	}
@@ -185,30 +186,6 @@ func (r *Repository) getSheetID(sheetName string) (int64, error) {
 	}
 
 	return 0, fmt.Errorf("sheet '%s' not found", sheetName)
-}
-
-// findLastFamilyRow finds the last row with data in column D (Family/Workspace).
-// Returns 0-indexed row number where new data should be inserted.
-// All new orders are appended at the last row of the table.
-func (r *Repository) findLastFamilyRow(sheetName string) (int64, error) {
-	// Read column D to find last non-empty cell
-	readRange := fmt.Sprintf("'%s'!D:D", sheetName)
-	resp, err := r.service.Spreadsheets.Values.Get(r.spreadsheetID, readRange).Do()
-	if err != nil {
-		return 0, err
-	}
-
-	// Find last non-empty row in column D
-	// Row 1 is title, Row 2 is header, data starts from row 3 (index 2)
-	lastFamilyRow := int64(1) // Default to row 2 if no data
-	for i, row := range resp.Values {
-		if len(row) > 0 && row[0] != nil && fmt.Sprintf("%v", row[0]) != "" {
-			lastFamilyRow = int64(i)
-		}
-	}
-
-	// Return the row after last Family row (0-indexed)
-	return lastFamilyRow + 1, nil
 }
 
 // resolveSheetName maps Produk value to actual sheet name using Product enum.
