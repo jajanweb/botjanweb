@@ -14,10 +14,12 @@ import (
 //
 // Spreadsheet column mappings (verified from actual sheets):
 //
-// Gemini:      A=No, B=Nama, C=Email, D=Family, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Akun/Nomor
-// ChatGPT:     A=No, B=Nama, C=Email, D=WorkSpace, E=Paket, F=TglPesanan, G=TglBerakhir, H=Nominal, I=Kanal, J=Bukti
-// YouTube:     A=No, B=Nama, C=Email, D=Email Head, E=TglPesan, F=TglBerakhir, G=Status, H=Nominal, I=Kanal
-// Perplexity:  A=No, B=Nama, C=Email, D=Kode Redeem, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Nomor/Username
+// Gemini:      A=No, B=Nama, C=Email, D=Family, E=TglPesanan, G=Nominal, H=Kanal, I=Akun/Nomor
+// ChatGPT:     A=No, B=Nama, C=Email, D=WorkSpace, E=Paket, F=TglPesanan, H=Nominal, I=Kanal, J=Bukti
+// YouTube:     A=No, B=Nama, C=Email, D=Email Head, E=TglPesan, G=Status, H=Nominal, I=Kanal
+// Perplexity:  A=No, B=Nama, C=Email, D=Kode Redeem, E=TglPesanan, G=Nominal, H=Kanal, I=Nomor/Username
+//
+// NOTE: Kolom F (Tanggal Berakhir) TIDAK DIISI oleh bot (diisi manual/formula)
 func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	// Determine target sheet from Produk field
 	targetSheet := r.resolveSheetName(order.Produk)
@@ -37,9 +39,6 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 
 	wib := time.FixedZone("WIB", 7*60*60)
 	tanggal := order.TanggalPesanan.In(wib).Format("2006-01-02")
-
-	// Calculate expiry date: 1 month from order date
-	tanggalBerakhir := order.TanggalPesanan.In(wib).AddDate(0, 1, 0).Format("2006-01-02")
 
 	// Build requests based on product type (different column structures)
 	var requests []*sheets.Request
@@ -82,7 +81,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	// Product-specific column mappings
 	switch order.Produk {
 	case "Gemini":
-		// D=Family, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Akun/Nomor
+		// D=Family, E=TglPesanan, G=Nominal, H=Kanal, I=Akun/Nomor
 		requests = append(requests,
 			// Update D (Family)
 			&sheets.Request{
@@ -102,7 +101,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 					Fields: "userEnteredValue",
 				},
 			},
-			// Update E (Tanggal Pesanan), F (Tanggal Berakhir)
+			// Update E (Tanggal Pesanan)
 			&sheets.Request{
 				UpdateCells: &sheets.UpdateCellsRequest{
 					Start: &sheets.GridCoordinate{
@@ -114,7 +113,6 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 						{
 							Values: []*sheets.CellData{
 								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
-								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
 							},
 						},
 					},
@@ -144,7 +142,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 		)
 
 	case "ChatGPT":
-		// D=WorkSpace, E=Paket, F=TglPesanan, G=TglBerakhir, H=Nominal, I=Kanal, J=Bukti
+		// D=WorkSpace, E=Paket, F=TglPesanan, H=Nominal, I=Kanal, J=Bukti
 		requests = append(requests,
 			// Update D (WorkSpace)
 			&sheets.Request{
@@ -164,7 +162,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 					Fields: "userEnteredValue",
 				},
 			},
-			// Update E (Paket), F (Tanggal Pesanan), G (Tanggal Berakhir)
+			// Update E (Paket), F (Tanggal Pesanan)
 			&sheets.Request{
 				UpdateCells: &sheets.UpdateCellsRequest{
 					Start: &sheets.GridCoordinate{
@@ -177,7 +175,6 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 							Values: []*sheets.CellData{
 								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Paket}},
 								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
-								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
 							},
 						},
 					},
@@ -207,7 +204,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 		)
 
 	case "YouTube":
-		// D=Email Head, E=TglPesan, F=TglBerakhir, G=Status, H=Nominal, I=Kanal
+		// D=Email Head, E=TglPesan, G=Status, H=Nominal, I=Kanal
 		// Note: No "Paket" column for YouTube
 		emailHead := order.Family // Use Family field as Email Head for YouTube
 		if emailHead == "" {
@@ -234,7 +231,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 					Fields: "userEnteredValue",
 				},
 			},
-			// Update E (Tanggal Pesan), F (Tanggal Berakhir), G (Status)
+			// Update E (Tanggal Pesan)
 			&sheets.Request{
 				UpdateCells: &sheets.UpdateCellsRequest{
 					Start: &sheets.GridCoordinate{
@@ -246,7 +243,23 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 						{
 							Values: []*sheets.CellData{
 								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
-								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+			// Update G (Status)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 6, // Column G
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
 								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &status}},
 							},
 						},
@@ -276,7 +289,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 		)
 
 	case "Perplexity":
-		// D=Kode Redeem, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Nomor/Username
+		// D=Kode Redeem, E=TglPesanan, G=Nominal, H=Kanal, I=Nomor/Username
 		kodeRedeem := order.KodeRedeem // Empty initially, filled by admin later
 
 		requests = append(requests,
@@ -298,7 +311,7 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 					Fields: "userEnteredValue",
 				},
 			},
-			// Update E (Tanggal Pesanan), F (Tanggal Berakhir)
+			// Update E (Tanggal Pesanan)
 			&sheets.Request{
 				UpdateCells: &sheets.UpdateCellsRequest{
 					Start: &sheets.GridCoordinate{
@@ -310,7 +323,6 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 						{
 							Values: []*sheets.CellData{
 								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
-								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
 							},
 						},
 					},
