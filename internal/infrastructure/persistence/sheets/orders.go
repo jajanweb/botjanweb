@@ -12,18 +12,12 @@ import (
 // LogOrder logs an order to the appropriate sheet based on Produk field.
 // Always inserts at the last row of the table (below existing data).
 //
-// Spreadsheet column mapping (ChatGPT):
+// Spreadsheet column mappings (verified from actual sheets):
 //
-//	A = No (auto, skip)
-//	B = Nama
-//	C = Email
-//	D = WorkSpace name (ChatGPT/Gemini) OR Kode Redeem (Perplexity/YouTube)
-//	E = Paket (duration: "20 Hari" or "30 Hari" for ChatGPT)
-//	F = Tanggal Pesanan
-//	G = Tanggal Berakhir (calculated: +1 month)
-//	H = Nominal
-//	I = Kanal
-//	J = Akun/Bukti Transaksi
+// Gemini:      A=No, B=Nama, C=Email, D=Family, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Akun/Nomor
+// ChatGPT:     A=No, B=Nama, C=Email, D=WorkSpace, E=Paket, F=TglPesanan, G=TglBerakhir, H=Nominal, I=Kanal, J=Bukti
+// YouTube:     A=No, B=Nama, C=Email, D=Email Head, E=TglPesan, F=TglBerakhir, G=Status, H=Nominal, I=Kanal
+// Perplexity:  A=No, B=Nama, C=Email, D=Kode Redeem, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Nomor/Username
 func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	// Determine target sheet from Produk field
 	targetSheet := r.resolveSheetName(order.Produk)
@@ -34,11 +28,8 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 		return fmt.Errorf("failed to get sheet ID for '%s': %w", targetSheet, err)
 	}
 
-	// Check if this is a redeem-based product (Perplexity/YouTube)
-	isRedeemProduct := order.Produk == "Perplexity" || order.Produk == "YouTube"
-
 	// Always insert at the last row of the table
-	// Use column B (Nama) instead of column D because column D can be empty for redeem products
+	// Use column B (Nama) which always has data
 	lastRow, err := r.findLastTableRowByColumn(targetSheet, "B")
 	if err != nil {
 		return fmt.Errorf("failed to find last table row: %w", err)
@@ -50,114 +41,306 @@ func (r *Repository) LogOrder(ctx context.Context, order *entity.Order) error {
 	// Calculate expiry date: 1 month from order date
 	tanggalBerakhir := order.TanggalPesanan.In(wib).AddDate(0, 1, 0).Format("2006-01-02")
 
-	// Determine column D value based on product type
-	var columnDValue string
-	if isRedeemProduct {
-		columnDValue = order.KodeRedeem // Empty initially, filled by admin later
-	} else {
-		columnDValue = order.Family
-	}
+	// Build requests based on product type (different column structures)
+	var requests []*sheets.Request
 
-	// INSERT NEW ROW + UPDATE CELLS (sama seperti #addakun)
-	// Mapping: B=Nama, C=Email, D=WorkSpace/Redeem, E=Paket, F=TglPesanan, G=TglBerakhir, H=Nominal, I=Kanal, J=Akun
-	requests := []*sheets.Request{
-		// 🆕 INSERT 1 ROW at lastRow position (SEBELUM update cells)
-		{
-			InsertDimension: &sheets.InsertDimensionRequest{
-				Range: &sheets.DimensionRange{
-					SheetId:    sheetID,
-					Dimension:  "ROWS",
-					StartIndex: lastRow,
-					EndIndex:   lastRow + 1,
-				},
-				InheritFromBefore: true,
+	// INSERT 1 ROW at lastRow position (common for all products)
+	requests = append(requests, &sheets.Request{
+		InsertDimension: &sheets.InsertDimensionRequest{
+			Range: &sheets.DimensionRange{
+				SheetId:    sheetID,
+				Dimension:  "ROWS",
+				StartIndex: lastRow,
+				EndIndex:   lastRow + 1,
 			},
+			InheritFromBefore: true,
 		},
-		// Update B (Nama) and C (Email)
-		{
-			UpdateCells: &sheets.UpdateCellsRequest{
-				Start: &sheets.GridCoordinate{
-					SheetId:     sheetID,
-					RowIndex:    lastRow,
-					ColumnIndex: 1, // Column B (0-indexed)
-				},
-				Rows: []*sheets.RowData{
-					{
-						Values: []*sheets.CellData{
-							// B: Nama
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Nama}},
-							// C: Email (text biasa)
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Email}},
-						},
+	})
+
+	// Update B (Nama) and C (Email) - common for all products
+	requests = append(requests, &sheets.Request{
+		UpdateCells: &sheets.UpdateCellsRequest{
+			Start: &sheets.GridCoordinate{
+				SheetId:     sheetID,
+				RowIndex:    lastRow,
+				ColumnIndex: 1, // Column B (0-indexed)
+			},
+			Rows: []*sheets.RowData{
+				{
+					Values: []*sheets.CellData{
+						// B: Nama
+						{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Nama}},
+						// C: Email
+						{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Email}},
 					},
 				},
-				Fields: "userEnteredValue",
 			},
+			Fields: "userEnteredValue",
 		},
-		// Update D (WorkSpace/Family or Kode Redeem)
-		{
-			UpdateCells: &sheets.UpdateCellsRequest{
-				Start: &sheets.GridCoordinate{
-					SheetId:     sheetID,
-					RowIndex:    lastRow,
-					ColumnIndex: 3, // Column D (0-indexed)
-				},
-				Rows: []*sheets.RowData{
-					{
-						Values: []*sheets.CellData{
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &columnDValue}},
+	})
+
+	// Product-specific column mappings
+	switch order.Produk {
+	case "Gemini":
+		// D=Family, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Akun/Nomor
+		requests = append(requests,
+			// Update D (Family)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 3, // Column D
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Family}},
+							},
 						},
 					},
+					Fields: "userEnteredValue",
 				},
-				Fields: "userEnteredValue",
 			},
-		},
-		// Update E (Paket), F (Tanggal Pesanan), G (Tanggal Berakhir)
-		{
-			UpdateCells: &sheets.UpdateCellsRequest{
-				Start: &sheets.GridCoordinate{
-					SheetId:     sheetID,
-					RowIndex:    lastRow,
-					ColumnIndex: 4, // Column E (0-indexed)
-				},
-				Rows: []*sheets.RowData{
-					{
-						Values: []*sheets.CellData{
-							// E: Paket (duration)
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Paket}},
-							// F: Tanggal Pesanan
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
-							// G: Tanggal Berakhir (1 month from order date)
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
+			// Update E (Tanggal Pesanan), F (Tanggal Berakhir)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 4, // Column E
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
+							},
 						},
 					},
+					Fields: "userEnteredValue",
 				},
-				Fields: "userEnteredValue",
 			},
-		},
-		// Update H (Nominal), I (Kanal), J (Akun/Bukti)
-		{
-			UpdateCells: &sheets.UpdateCellsRequest{
-				Start: &sheets.GridCoordinate{
-					SheetId:     sheetID,
-					RowIndex:    lastRow,
-					ColumnIndex: 7, // Column H (0-indexed)
-				},
-				Rows: []*sheets.RowData{
-					{
-						Values: []*sheets.CellData{
-							// H: Nominal (Amount)
-							{UserEnteredValue: &sheets.ExtendedValue{NumberValue: ptr64(float64(order.Amount))}},
-							// I: Kanal
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Kanal}},
-							// J: Akun/Bukti Transaksi
-							{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Akun}},
+			// Update G (Nominal), H (Kanal), I (Akun/Nomor)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 6, // Column G
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{NumberValue: ptr64(float64(order.Amount))}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Kanal}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Akun}},
+							},
 						},
 					},
+					Fields: "userEnteredValue",
 				},
-				Fields: "userEnteredValue",
 			},
-		},
+		)
+
+	case "ChatGPT":
+		// D=WorkSpace, E=Paket, F=TglPesanan, G=TglBerakhir, H=Nominal, I=Kanal, J=Bukti
+		requests = append(requests,
+			// Update D (WorkSpace)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 3, // Column D
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Family}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+			// Update E (Paket), F (Tanggal Pesanan), G (Tanggal Berakhir)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 4, // Column E
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Paket}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+			// Update H (Nominal), I (Kanal), J (Bukti Transaksi)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 7, // Column H
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{NumberValue: ptr64(float64(order.Amount))}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Kanal}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Akun}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+		)
+
+	case "YouTube":
+		// D=Email Head, E=TglPesan, F=TglBerakhir, G=Status, H=Nominal, I=Kanal
+		// Note: No "Paket" column for YouTube
+		emailHead := order.Family // Use Family field as Email Head for YouTube
+		if emailHead == "" {
+			emailHead = order.Email // Fallback to customer email
+		}
+		status := "Aktif" // Default status
+
+		requests = append(requests,
+			// Update D (Email Head)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 3, // Column D
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &emailHead}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+			// Update E (Tanggal Pesan), F (Tanggal Berakhir), G (Status)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 4, // Column E
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &status}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+			// Update H (Nominal), I (Kanal)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 7, // Column H
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{NumberValue: ptr64(float64(order.Amount))}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Kanal}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+		)
+
+	case "Perplexity":
+		// D=Kode Redeem, E=TglPesanan, F=TglBerakhir, G=Nominal, H=Kanal, I=Nomor/Username
+		kodeRedeem := order.KodeRedeem // Empty initially, filled by admin later
+
+		requests = append(requests,
+			// Update D (Kode Redeem)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 3, // Column D
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &kodeRedeem}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+			// Update E (Tanggal Pesanan), F (Tanggal Berakhir)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 4, // Column E
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggal}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &tanggalBerakhir}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+			// Update G (Nominal), H (Kanal), I (Nomor/Username)
+			&sheets.Request{
+				UpdateCells: &sheets.UpdateCellsRequest{
+					Start: &sheets.GridCoordinate{
+						SheetId:     sheetID,
+						RowIndex:    lastRow,
+						ColumnIndex: 6, // Column G
+					},
+					Rows: []*sheets.RowData{
+						{
+							Values: []*sheets.CellData{
+								{UserEnteredValue: &sheets.ExtendedValue{NumberValue: ptr64(float64(order.Amount))}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Kanal}},
+								{UserEnteredValue: &sheets.ExtendedValue{StringValue: &order.Akun}},
+							},
+						},
+					},
+					Fields: "userEnteredValue",
+				},
+			},
+		)
+
+	default:
+		return fmt.Errorf("unsupported product: %s", order.Produk)
 	}
 
 	_, err = r.service.Spreadsheets.BatchUpdate(r.spreadsheetID, &sheets.BatchUpdateSpreadsheetRequest{
