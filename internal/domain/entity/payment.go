@@ -35,17 +35,18 @@ type DANANotification struct {
 }
 
 // Order represents an order to be logged to spreadsheet.
+// Column mappings vary by product (see orders.go for details).
 type Order struct {
 	Produk         string    // Determines target sheet
-	Nama           string    // B: Nama
-	Email          string    // C: Email
-	Family         string    // D: Family/WorkSpace (for ChatGPT/Gemini) or empty
-	KodeRedeem     string    // D: Kode Redeem (for Perplexity/YouTube)
-	Paket          string    // E: Paket ("20 Hari" or "30 Hari" for ChatGPT)
-	TanggalPesanan time.Time // F: Tanggal Pesanan
-	Amount         int       // H: Amount/Nominal
-	Kanal          string    // I: Kanal
-	Akun           string    // J: Akun/Nomor/Username (or Bukti Transaksi)
+	Nama           string    // B: Nama (all products)
+	Email          string    // C: Email (all products)
+	Family         string    // D: Family/WorkSpace (Gemini/ChatGPT) or Email Head (YouTube)
+	KodeRedeem     string    // D: Kode Redeem (Perplexity only)
+	Paket          string    // E: Paket (ChatGPT only: "20 Hari" or "30 Hari")
+	TanggalPesanan time.Time // E/F: Tanggal Pesanan (varies by product)
+	Amount         int       // G/H: Amount/Nominal (varies by product)
+	Kanal          string    // H/I: Kanal (varies by product)
+	Akun           string    // I/J: Akun/Nomor/Username/Bukti (varies by product)
 }
 
 // NewOrderFromPending creates an Order entity from a confirmed PendingPayment.
